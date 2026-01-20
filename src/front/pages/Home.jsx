@@ -1,6 +1,6 @@
 import React, { useEffect, useRef, useState } from "react";
 
-// ✅ Sustituye estas URLs por assets locales cuando los tengáis
+// ✅ Sustituir estas URLs por assets locales cuando los tenga
 const HERO_IMAGE =
 	"https://images.unsplash.com/photo-1528715471579-d1bcf0ba5e83?auto=format&fit=crop&w=1200&q=80";
 const ILLU_1 =
