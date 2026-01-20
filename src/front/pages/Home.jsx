@@ -3,9 +3,9 @@ import React, { useEffect, useRef, useState } from "react";
 // ✅ Sustituir estas URLs por assets locales cuando los tenga
 const HERO_IMAGE =
 	"https://images.unsplash.com/photo-1528715471579-d1bcf0ba5e83?auto=format&fit=crop&w=1200&q=80";
-const ILLU_1 =
+const ILLU_1_DIA =
 	"https://images.unsplash.com/photo-1527137342181-19aab11a8ee8?auto=format&fit=crop&w=1200&q=80";
-const ILLU_2 =
+const ILLU_2_NOCHE =
 	"https://images.unsplash.com/photo-1518837695005-2083093ee35b?auto=format&fit=crop&w=1200&q=80";
 
 function Reveal({ children, className = "" }) {
@@ -194,7 +194,7 @@ export const Home = () => {
 						<div className="col-12 col-lg-6">
 							<Reveal>
 								<div className="pb-media-card">
-									<img src={ILLU_1} className="img-fluid pb-media-img" alt="Actividad guiada" />
+									<img src={ILLU_1_DIA} className="img-fluid pb-media-img" alt="Actividad guiada" />
 									<div className="p-4 p-lg-5">
 										<h3 className="h4 fw-bold mb-2">Día: acciones conscientes</h3>
 										<p className="text-secondary mb-0">
@@ -208,7 +208,7 @@ export const Home = () => {
 						<div className="col-12 col-lg-6">
 							<Reveal>
 								<div className="pb-media-card">
-									<img src={ILLU_2} className="img-fluid pb-media-img" alt="Reflexión nocturna" />
+									<img src={ILLU_2_NOCHE} className="img-fluid pb-media-img" alt="Reflexión nocturna" />
 									<div className="p-4 p-lg-5">
 										<h3 className="h4 fw-bold mb-2">Noche: emoción y cierre</h3>
 										<p className="text-secondary mb-0">
