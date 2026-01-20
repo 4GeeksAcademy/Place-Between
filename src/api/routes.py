@@ -2,7 +2,7 @@
 This module takes care of starting the API Server, Loading the DB and Adding the endpoints
 """
 from flask import Flask, request, jsonify, url_for, Blueprint
-from api.models import db, User 
+from api.models import db, User, DailySession, ActivityCompletion, EmotionCheckin
 from api.utils import generate_sitemap, APIException
 from flask_cors import CORS
 from datetime import datetime ,timedelta
@@ -97,4 +97,68 @@ def login():
     return jsonify({
         "access_token": access_token,
         "user": user.serialize()
+    }), 200
+
+@api.route("/mirror/today", methods=["GET"])
+@jwt_required()
+def mirror_today():
+    user_id = get_jwt_identity()
+    user = User.query.get(user_id)
+
+    if not user:
+        return jsonify({"msg": "Usuario no encontrado"}), 404
+
+    today = datetime.utcnow().date()
+
+    # buscar cualquier sesión de hoy (day o night)
+    session = DailySession.query.filter_by(
+        user_id=user.id,
+        session_date=today
+    ).first()
+
+    # 🟡 Caso: no hay sesión hoy
+    if not session:
+        return jsonify({
+            "date": today.isoformat(),
+            "session_type": None,
+            "points_today": 0,
+            "activities": [],
+            "emotion": None,
+            "message": "Aún no has registrado actividades ni emociones hoy"
+        }), 200
+
+    # actividades
+    completions = ActivityCompletion.query.filter_by(
+        daily_session_id=session.id
+    ).all()
+
+    activities = []
+    for c in completions:
+        activities.append({
+            "id": c.activity.id,
+            "name": c.activity.name,
+            "points": c.points_awarded
+        })
+
+    # emoción principal (última registrada)
+    emotion_checkin = (
+        EmotionCheckin.query
+        .filter_by(daily_session_id=session.id)
+        .order_by(EmotionCheckin.created_at.desc())
+        .first()
+    )
+
+    emotion = None
+    if emotion_checkin:
+        emotion = {
+            "name": emotion_checkin.emotion.name,
+            "intensity": emotion_checkin.intensity
+        }
+
+    return jsonify({
+        "date": today.isoformat(),
+        "session_type": session.session_type.value,
+        "points_today": session.points_earned,
+        "activities": activities,
+        "emotion": emotion
     }), 200

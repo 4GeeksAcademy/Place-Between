@@ -220,6 +220,10 @@ class ActivityCategory(db.Model):
 
     def serialize(self):
         return {"id": self.id, "name": self.name, "description": self.description}
+    
+    def __repr__(self):
+        return f"{self.name}"
+
 
 
 class Activity(db.Model):
@@ -255,6 +259,8 @@ class Activity(db.Model):
             "is_active": self.is_active,
         }
     
+    def __repr__(self):
+        return f"{self.name}"
  # ACTIVITIES + CATEGORIES + COMPLETIONS   
 
 
@@ -263,7 +269,7 @@ class ActivityCompletion(db.Model):
     __table_args__ = (
         Index("ix_activity_completions_session", "daily_session_id"),
         Index("ix_activity_completions_activity", "activity_id"),
-        CheckConstraint("points_awarded >= 0", name="ck_activity_points_nonneg"),
+        CheckConstraint("points_awarded IN (0, 1, 3)", name="ck_activity_points_nonneg"),
     )
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True)
