@@ -1,30 +1,39 @@
-// Import necessary components and functions from react-router-dom.
+import React from "react";
+import { createBrowserRouter } from "react-router-dom";
 
-import {
-    createBrowserRouter,
-    createRoutesFromElements,
-    Route,
-} from "react-router-dom";
-import { Layout } from "./pages/Layout";
+import { PublicLayout } from "./pages/PublicLayout";
+import { AppLayout } from "./pages/AppLayout";
+
 import { Home } from "./pages/Home";
-import { Single } from "./pages/Single";
-import { Demo } from "./pages/Demo";
+import { Login } from "./pages/Login";
+import { Signup } from "./pages/Signup";
 
-export const router = createBrowserRouter(
-    createRoutesFromElements(
-    // CreateRoutesFromElements function allows you to build route elements declaratively.
-    // Create your routes here, if you want to keep the Navbar and Footer in all views, add your new routes inside the containing Route.
-    // Root, on the contrary, create a sister Route, if you have doubts, try it!
-    // Note: keep in mind that errorElement will be the default page when you don't get a route, customize that page to make your project more attractive.
-    // Note: The child paths of the Layout element replace the Outlet component with the elements contained in the "element" attribute of these child paths.
+import { Today } from "./pages/Today";
+import { Activities } from "./pages/Activities";
+import { Mirror } from "./pages/Mirror";
+import { Profile } from "./pages/Profile";
 
-      // Root Route: All navigation will start from here.
-      <Route path="/" element={<Layout />} errorElement={<h1>Not found!</h1>} >
+export const router = createBrowserRouter([
+  // Público
+  {
+    path: "/",
+    element: <PublicLayout />,
+    children: [
+      { path: "/", element: <Home /> },
+      { path: "/auth/login", element: <Login /> },
+      { path: "/auth/signup", element: <Signup /> },
+    ],
+  },
 
-        {/* Nested Routes: Defines sub-routes within the BaseHome component. */}
-        <Route path= "/" element={<Home />} />
-        <Route path="/single/:theId" element={ <Single />} />  {/* Dynamic route for single items */}
-        <Route path="/demo" element={<Demo />} />
-      </Route>
-    )
-);
+  // App
+  {
+    path: "/",
+    element: <AppLayout />,
+    children: [
+      { path: "/today", element: <Today /> },
+      { path: "/activities", element: <Activities /> },
+      { path: "/mirror", element: <Mirror /> },
+      { path: "/profile", element: <Profile /> },
+    ],
+  },
+]);
