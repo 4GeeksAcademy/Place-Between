@@ -6,6 +6,7 @@ from api.models import db, User, Emotion, EmotionCheckin, Activity, ActivityComp
 from api.utils import generate_sitemap, APIException
 from flask_cors import CORS
 from datetime import datetime
+from flask_jwt_extended import create_access_token, jwt_required, get_jwt_identity
 
 api = Blueprint('api', __name__)
 
@@ -79,6 +80,7 @@ def get_emotions():
 
 @api.route("/users/<int:user_id>", methods=["DELETE"])
 def delete_user(user_id):
+    user_id = get_jwt_identity()
     user = User.query.get(user_id)
 
     db.session.delete(user)
@@ -90,21 +92,23 @@ def delete_user(user_id):
 ###### DAILY SESSION 
 
 @api.route("/sessions/<int:session_id>", methods=["POST"])
+@jwt_required()
 def get_or_create_session():
-    data = request.json
-    user_id = data["user_id"]
-    session_type = data["session_type"]
+    request_data = request.json
+    user_id = get_jwt_identity()
+    user = User.query.get(user_id)
+    session_type = request_data["session_type"]
     today = datetime.today()
 
     daily_session = DailySession.query.filter_by(
-        user_id=user_id,
+        user_id=user,
         session_date=today,
         session_type=session_type
     ).first()
 
     if not daily_session:
         daily_session = DailySession(
-            user_id=user_id,
+            user_id=user,
             session_date=today,
             session_type=session_type
         )
@@ -118,19 +122,38 @@ def get_or_create_session():
 
 ### GET Emotions
 
-@api.route("/emotion", methods=["GET"])
+@api.route("/emotions", methods=["GET"])
 def get_emotions():
     emotions = Emotion.query.all()
     return jsonify([e.serialize() for e in emotions])
 
-### POST Emotion Checkin
+### GET User Emotion
 
-@api.route("/sessions/<int:session_id>/emotion-checkin", methods=["POST"])
-def create_emotion_checkin(session_id):
+@api.route("/users/<int:user_id>/emotions", methods=["GET"])
+def get_user_emotions():
+    request_data = request.json
+    user_id = get_jwt_identity()
+    user = User.query.get(user_id)
+    
+    emotions = EmotionCheckin(
+        user_id=user,
+        emotion_id=request_data["emotion_id"],
+        description=request_data.get("description")
+    )
+
+    user_emotions = [e.serialize() for e in emotions]
+
+    return jsonify(user_emotions)
+
+
+### POST Emotions Checkin
+
+@api.route("/sessions/<int:session_id>/emotions-checkin", methods=["POST"])
+def create_emotions_checkin(daily_session_id):
     request_data = request.json
 
     checkin = EmotionCheckin(
-        daily_session_id=session_id,
+        daily_session_id=daily_session_id,
         emotion_id=request_data["emotion_id"],
         note=request_data.get("note")
     )
@@ -173,18 +196,18 @@ def get_session_emotion_music(daily_session_id):
 
 @api.route("/activities", methods=["GET"])
 def get_activities():
-    activities = Activity.query.filter_by(is_active=True).all()
+    activities = Activity.query.all()
     return jsonify([a.serialize() for a in activities])
 
 
 ### POST Completion
 
 @api.route("/sessions/<int:session_id>/activity-completed", methods=["POST"])
-def complete_activity(session_id):
+def complete_activity(daily_session_id):
     request_data = request.json
 
     activity_completed = ActivityCompletion(
-        daily_session_id=session_id,
+        daily_session_id=daily_session_id,
         activity_id=request_data["activity_id"],
         points_awarded=request_data.get("points_awarded", 0)
     )
@@ -201,6 +224,6 @@ def complete_activity(session_id):
 ### GET Activities Completed
 
 @api.route("/sessions/<int:session_id>/activity-completions", methods=["GET"])
-def get_activity_completions(session_id):
-    activities_completed = ActivityCompletion.query.filter_by(daily_session_id=session_id).all()
+def get_activity_completions(daily_session_id):
+    activities_completed = ActivityCompletion.query.filter_by(daily_session_id=daily_session_id).all()
     return jsonify([ac.serialize() for ac in activities_completed])
