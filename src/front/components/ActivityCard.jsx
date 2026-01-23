@@ -6,6 +6,7 @@ export const ActivityCard = ({
     variant = "compact", // "hero" | "compact"
     onStart,
     onComplete,
+    showCompleteButton = true,
 }) => {
     return (
         <div className={`pb-activity card shadow-sm ${variant === "hero" ? "pb-activity-hero" : ""}`}>
@@ -47,12 +48,14 @@ export const ActivityCard = ({
                         Empezar
                     </button>
 
-                    <button
-                        className={`btn ${completed ? "btn-outline-success" : "btn-outline-secondary"}`}
-                        onClick={() => onComplete?.(activity)}
-                    >
-                        {completed ? "Marcar como no hecha" : "Marcar completada"}
-                    </button>
+                    {showCompleteButton && (
+                        <button
+                            className={`btn ${completed ? "btn-outline-success" : "btn-outline-secondary"}`}
+                            onClick={() => onComplete?.(activity)}
+                        >
+                            {completed ? "Marcar como no hecha" : "Marcar completada"}
+                        </button>
+                    )}
                 </div>
 
                 {activity.reason && (

@@ -3,9 +3,11 @@ import { useLocation } from "react-router-dom";
 import { ActivityCard } from "../components/ActivityCard";
 import { ProgressRing } from "../components/ProgressRing";
 
-// NUEVO: selector híbrido + labels
 import { buildTodaySet } from "../data/todaySelector";
 import { weekdayLabelES } from "../data/weeklyPlan";
+
+// NUEVO: puntos
+import { loadPointsState, awardPointsOnce } from "../services/pointsService";
 
 const getDateKey = () => {
     const d = new Date();
@@ -61,6 +63,10 @@ export const Today = () => {
     // Modal/actividad activa
     const [activeActivity, setActiveActivity] = useState(null);
 
+    // NUEVO: puntos de hoy (local)
+    const [pointsToday, setPointsToday] = useState(() => loadPointsState(dateKey).total);
+    const [lastPointsToast, setLastPointsToast] = useState(null); // {points, reason}
+
     // 1) Forzar fase por query param (para test)
     useEffect(() => {
         const forced = getForcedPhase(location.search);
@@ -80,6 +86,11 @@ export const Today = () => {
         saveState(dateKey, phase, { completed });
     }, [completed, dateKey, phase]);
 
+    // NUEVO: refresco de puntos (por si se otorgaron desde otro lugar en el futuro)
+    useEffect(() => {
+        setPointsToday(loadPointsState(dateKey).total);
+    }, [dateKey]);
+
     const toggleComplete = (activity) => {
         setCompleted((prev) => {
             const has = prev.includes(activity.id);
@@ -88,14 +99,13 @@ export const Today = () => {
     };
 
     const onStart = (activity) => {
-        // MVP: abrimos modal. Al “Finalizar” se marca automáticamente.
         setActiveActivity(activity);
     };
 
     const phaseKey = phaseToKey(phase);
     const isNight = phaseKey === "night";
 
-    // NUEVO: recommended fijo por día + pillars por rotación/diversidad
+    // Recommended fijo por día + pillars por rotación/diversidad
     const { recommended, pillars } = useMemo(() => {
         return buildTodaySet({
             phaseKey,
@@ -104,8 +114,8 @@ export const Today = () => {
         });
     }, [phaseKey, dayIndex, completed]);
 
+    // Progreso (solo sobre el set visible: recommended + 3)
     const totalCount = useMemo(() => {
-        // Total = recommended + pillars (si existe), evita inflar el % si el catálogo crece
         const ids = new Set();
         if (recommended?.id) ids.add(recommended.id);
         for (const p of pillars) ids.add(p.id);
@@ -113,7 +123,6 @@ export const Today = () => {
     }, [recommended, pillars]);
 
     const completedCount = useMemo(() => {
-        // Contamos completadas solo dentro del set mostrado (recommended + 3)
         const shownIds = new Set();
         if (recommended?.id) shownIds.add(recommended.id);
         for (const p of pillars) shownIds.add(p.id);
@@ -129,6 +138,37 @@ export const Today = () => {
     );
 
     const diaLabel = weekdayLabelES?.[dayIndex] || "Hoy";
+
+    // NUEVO: otorgar puntos al finalizar (1 vez por actividad/día)
+    const awardPointsFor = (activity, { source = "today" } = {}) => {
+        if (!activity?.id) return;
+
+        const isCorrectPhase = activity.phase === phaseKey;
+        const isRecommended = recommended?.id === activity.id;
+
+        const res = awardPointsOnce({
+            dateKey,
+            activityId: activity.id,
+            source,
+            isCorrectPhase,
+            isRecommended,
+        });
+
+        if (res.awarded) {
+            setPointsToday(res.total);
+
+            let reason = "Actividad completada";
+            if (source === "catalog") reason = "Catálogo (bonus reducido)";
+            else if (isCorrectPhase && isRecommended) reason = "Bonus: recomendada en fase correcta";
+            else if (isCorrectPhase) reason = "Hecha en fase correcta";
+            else reason = "Fuera de fase (bonus reducido)";
+
+            setLastPointsToast({ points: res.points, reason });
+
+            // auto-hide
+            setTimeout(() => setLastPointsToast(null), 2200);
+        }
+    };
 
     return (
         <div className={`pb-today ${isNight ? "pb-today-night" : "pb-today-day"}`}>
@@ -148,7 +188,6 @@ export const Today = () => {
                                 : "Cierre breve: emoción + regulación. Luego, Espejo."}
                         </p>
 
-                        {/* Debug helper (opcional): indica cómo forzar fase */}
                         <div className="small pb-sub mt-2">
                             Test fase: <span className="pb-mono">/today?phase=day</span> o{" "}
                             <span className="pb-mono">/today?phase=night</span>
@@ -163,7 +202,14 @@ export const Today = () => {
                                 <div className="pb-sub small">
                                     {Math.max(0, totalCount - completedCount)} restantes hoy
                                 </div>
-                                <div className="small">
+
+                                {/* NUEVO: puntos */}
+                                <div className="small mt-2">
+                                    <span className="fw-semibold">Puntos hoy:</span>{" "}
+                                    <span className="pb-mono">{pointsToday}</span>
+                                </div>
+
+                                <div className="small mt-1">
                                     <a className="text-decoration-none" href="/mirror">
                                         Ver en Espejo →
                                     </a>
@@ -182,6 +228,7 @@ export const Today = () => {
                             completed={completed.includes(recommended.id)}
                             onStart={onStart}
                             onComplete={toggleComplete}
+                            showCompleteButton={true}
                         />
                     </div>
                 ) : (
@@ -206,6 +253,7 @@ export const Today = () => {
                                 completed={completed.includes(a.id)}
                                 onStart={onStart}
                                 onComplete={toggleComplete}
+                                showCompleteButton={true}
                             />
                         </div>
                     ))}
@@ -231,6 +279,25 @@ export const Today = () => {
                 )}
             </div>
 
+            {/* Toast simple de puntos */}
+            {lastPointsToast && (
+                <div
+                    style={{
+                        position: "fixed",
+                        right: 16,
+                        bottom: 16,
+                        zIndex: 1080,
+                        minWidth: 260,
+                    }}
+                    className={`card shadow-sm ${isNight ? "text-bg-dark" : ""}`}
+                >
+                    <div className="card-body py-3">
+                        <div className="fw-bold">+{lastPointsToast.points} puntos</div>
+                        <div className="small opacity-75">{lastPointsToast.reason}</div>
+                    </div>
+                </div>
+            )}
+
             {/* Modal “actividad en curso” */}
             {activeActivity && (
                 <>
@@ -246,8 +313,13 @@ export const Today = () => {
                                     <p className="text-secondary mb-2">{activeActivity.description}</p>
 
                                     <div className="small text-secondary">
-                                        Placeholder de ejecución. Más adelante, según{" "}
-                                        <span className="pb-mono">{activeActivity.run}</span>, abrimos el minijuego/pantalla real.
+                                        Placeholder de ejecución. Runner:{" "}
+                                        <span className="pb-mono">{activeActivity.run}</span>
+                                    </div>
+
+                                    {/* Hint de puntos */}
+                                    <div className="small text-secondary mt-2">
+                                        Puntos: recomendada y en fase correcta = bonus.
                                     </div>
                                 </div>
 
@@ -259,8 +331,12 @@ export const Today = () => {
                                     <button
                                         className="btn btn-primary"
                                         onClick={() => {
-                                            // “Finalizar” = marcar como completada automáticamente
+                                            // 1) Marcar completada automáticamente
                                             if (!completed.includes(activeActivity.id)) toggleComplete(activeActivity);
+
+                                            // 2) Otorgar puntos (1 vez/día por actividad)
+                                            awardPointsFor(activeActivity, { source: "today" });
+
                                             setActiveActivity(null);
                                         }}
                                     >

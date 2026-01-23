@@ -151,6 +151,7 @@ export const Activities = () => {
 							completed={false}
 							onStart={onStart}
 							onComplete={() => { }}
+							showCompleteButton={false}
 						/>
 					</div>
 				))}
