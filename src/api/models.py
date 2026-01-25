@@ -183,6 +183,10 @@ class EmotionCheckin(db.Model):
     __table_args__ = (
         Index("ix_emotion_checkins_session", "daily_session_id"),
         Index("ix_emotion_checkins_emotion", "emotion_id"),
+        CheckConstraint(
+            "intensity >= 1 AND intensity <= 10",
+            name="ck_emotion_checkin_intensity_range"
+        ),
     )
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True)
@@ -194,6 +198,8 @@ class EmotionCheckin(db.Model):
         Integer, ForeignKey("emotions.id"), nullable=False
     )
 
+    intensity: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    
     note: Mapped[str | None] = mapped_column(String(300), nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime, nullable=False, default=datetime.utcnow)
 
@@ -205,6 +211,7 @@ class EmotionCheckin(db.Model):
             "id": self.id,
             "daily_session_id": self.daily_session_id,
             "emotion_id": self.emotion_id,
+            "intensity": self.intensity,
             "note": self.note,
             "created_at": self.created_at.isoformat() + "Z",
         }

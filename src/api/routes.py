@@ -231,9 +231,9 @@ def mirror_today():
     if latest_checkin and latest_checkin.emotion:
         emotion = {
             "name": latest_checkin.emotion.name,
-            # No existe intensity en el modelo; devolvemos campos reales:
-            "note": latest_checkin.note,
             "value": latest_checkin.emotion.value,
+            "intensity": latest_checkin.intensity,
+            "note": latest_checkin.note,
             "created_at": latest_checkin.created_at.isoformat() + "Z"
         }
 
@@ -250,12 +250,14 @@ def mirror_today():
 # READ-ONLY LISTS (safe)
 # -------------------------
 @api.route("/emotions", methods=["GET"])
+#@jwt_required()
 def get_all_emotions():
     emotions = Emotion.query.all()
     return jsonify([e.serialize() for e in emotions]), 200
 
 
 @api.route("/activities", methods=["GET"])
+#@jwt_required()
 def get_all_activities():
     activities = Activity.query.filter_by(is_active=True).all()
     return jsonify([a.serialize() for a in activities]), 200
@@ -391,8 +393,87 @@ def mirror_week():
 
 
 # -------------------------
-# SEED-ACTIVITIES (problematic)
+# SEED-ACTIVITIES
 # -------------------------
+
+@api.route("/emotions/checkin", methods=["POST"])
+@jwt_required()
+def create_emotion_checkin():
+    """
+    Body:
+      {
+        "emotion_id": 1,
+        "intensity": 1..10,
+        "note": "texto opcional"
+      }
+    Guarda un check-in emocional ligado a la sesión NIGHT de hoy (UTC date).
+    """
+    body = request.get_json(silent=True) or {}
+
+    emotion_id = body.get("emotion_id")
+    intensity = body.get("intensity")
+    note_text = (body.get("note") or "").strip()
+
+    # Validaciones
+    try:
+        emotion_id = int(emotion_id)
+    except Exception:
+        return jsonify({"msg": "emotion_id inválido"}), 400
+
+    try:
+        intensity = int(intensity)
+    except Exception:
+        return jsonify({"msg": "intensity inválido"}), 400
+
+    # Refuerzo de API (además del CheckConstraint en DB)
+    if intensity < 1 or intensity > 10:
+        return jsonify({"msg": "intensity debe estar entre 1 y 10"}), 400
+
+    user_id = int(get_jwt_identity())
+    today = datetime.now(timezone.utc).date()
+
+    user = User.query.get(user_id)
+    if not user:
+        return jsonify({"msg": "Usuario no encontrado"}), 404
+
+    emotion = Emotion.query.get(emotion_id)
+    if not emotion:
+        return jsonify({"msg": "Emoción no encontrada"}), 404
+
+    # Crear o recuperar sesión NIGHT de hoy
+    st_enum = SessionType.night
+    session = DailySession.query.filter_by(
+        user_id=user.id,
+        session_date=today,
+        session_type=st_enum
+    ).first()
+
+    if not session:
+        session = DailySession(
+            user_id=user.id,
+            session_date=today,
+            session_type=st_enum,
+            points_earned=0
+        )
+        db.session.add(session)
+        db.session.commit()
+
+    checkin = EmotionCheckin(
+        daily_session_id=session.id,
+        emotion_id=emotion.id,
+        intensity=intensity,
+        note=note_text if note_text else None
+    )
+
+    db.session.add(checkin)
+    db.session.commit()
+
+    return jsonify({
+        "msg": "Emotion check-in guardado",
+        "checkin": checkin.serialize(),
+        "emotion": emotion.serialize()
+    }), 201
+
 
 @api.route("/dev/seed/activities/bulk", methods=["POST"])
 def dev_seed_activities_bulk():

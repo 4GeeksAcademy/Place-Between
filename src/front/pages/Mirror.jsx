@@ -7,6 +7,21 @@ const getBackendUrl = () => {
   return (url || "").replace(/\/$/, "");
 };
 
+const formatDateTime = (isoString) => {
+  if (!isoString) return "";
+  const d = new Date(isoString);
+  if (Number.isNaN(d.getTime())) return isoString;
+
+  // Formato español y compacto
+  return new Intl.DateTimeFormat("es-ES", {
+    day: "2-digit",
+    month: "short",
+    year: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+  }).format(d);
+};
+
 export const Mirror = () => {
   const BACKEND_URL = useMemo(() => getBackendUrl(), []);
   const token = useMemo(() => localStorage.getItem("pb_token"), []);
@@ -154,7 +169,7 @@ export const Mirror = () => {
               <div className="d-flex align-items-center justify-content-between mb-2">
                 <h2 className="h5 fw-bold mb-0">Emoción (último registro)</h2>
                 {emotion?.created_at && (
-                  <span className="text-secondary small">{emotion.created_at}</span>
+                  <span className="text-secondary small">{formatDateTime(emotion.created_at)}</span>
                 )}
               </div>
 
@@ -164,12 +179,55 @@ export const Mirror = () => {
 
               {emotion && (
                 <>
-                  <div className="d-flex align-items-center gap-2 mb-1">
-                    <span className="badge text-bg-dark">{emotion.name}</span>
-                    {typeof emotion.value === "number" && (
-                      <span className="text-secondary small">valor: {emotion.value}</span>
-                    )}
-                  </div>
+                  {/* Emoción + intensidad con color dinámico */}
+                  {(() => {
+                    const clamp = (n, a, b) => Math.max(a, Math.min(b, n));
+
+                    // Hues base (Plutchik-inspired)
+                    const emotionHues = {
+                      "Alegría": 48,    // amarillo
+                      "Tristeza": 205,  // azul
+                      "Ira": 2,         // rojo
+                      "Miedo": 130,     // verde oscuro
+                    };
+
+                    const getEmotionColor = (name, intensity) => {
+                      const hue = emotionHues[name] ?? 210;
+
+                      // intensity 1..10 → 0..1
+                      const t = clamp((Number(intensity) - 1) / 9, 0, 1);
+
+                      // Más intensidad = más saturación + más “profundidad”
+                      const sat = 40 + t * 50;   // 40% → 90%
+                      const light = 55 - t * 20; // 55% → 35%
+
+                      return `hsl(${hue} ${sat}% ${light}%)`;
+                    };
+
+                    const bgColor = getEmotionColor(emotion.name, emotion.intensity);
+
+                    return (
+                      <div className="d-flex align-items-center gap-2 mb-2">
+                        <span
+                          className="badge"
+                          style={{
+                            backgroundColor: bgColor,
+                            color: "#ffffff",
+                            padding: "0.4em 0.6em",
+                          }}
+                        >
+                          {emotion.name}
+                        </span>
+
+                        {typeof emotion.intensity === "number" && (
+                          <span className="text-secondary small">
+                            intensidad: {emotion.intensity}/10
+                          </span>
+                        )}
+                      </div>
+                    );
+                  })()}
+
                   {emotion.note ? (
                     <p className="mb-0">{emotion.note}</p>
                   ) : (

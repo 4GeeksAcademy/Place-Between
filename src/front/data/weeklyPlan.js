@@ -13,13 +13,13 @@ export const weeklyPlan = {
 		6: "d-stretch-break",     // Sábado
 	},
 	night: {
-		0: "n-rec-emotion-pick",
-		1: "n-rec-emotion-pick",
-		2: "n-rec-emotion-pick",
-		3: "n-rec-emotion-pick",
-		4: "n-rec-emotion-pick",
-		5: "n-rec-emotion-pick",
-		6: "n-rec-emotion-pick",
+		0: "n-rec-emotion-check",   // Domingo
+		1: "n-rec-emotion-check",	// Lunes
+		2: "n-rec-emotion-check",	// Martes
+		3: "n-rec-emotion-check",	// Miércoles	
+		4: "n-rec-emotion-check",	// Jueves	
+		5: "n-rec-emotion-check",	// Viernes
+		6: "n-rec-emotion-check",	// Sábado
 	},
 };
 

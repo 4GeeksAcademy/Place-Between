@@ -1,5 +1,7 @@
-import React, { useMemo, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import { ActivityCard } from "../components/ActivityCard";
+import { ActivityRunner } from "../components/ActivityRunner";
+
 import { activitiesCatalog } from "../data/activities";
 
 
@@ -8,28 +10,145 @@ const getBackendUrl = () => {
 	return (url || "").replace(/\/$/, "");
 };
 
+const phaseLabel = (phaseKey) => (phaseKey === "night" ? "Noche" : "Día");
+
 /**
- * MVP: Catálogo completo de actividades con filtros
- * - Fase: Día / Noche / Todas
- * - Rama: (según catálogo)
- * - Búsqueda: título/descripcion
- * - Modal simple al “Empezar” (igual que Today), con “Finalizar” opcional (no persiste aún)
+ * Construye un índice rápido del catálogo local por id (external_id).
+ * Esto permite "enriquecer" lo que viene de DB con run/duration/image/badges.
  */
+const buildCatalogIndex = () => {
+	const day = activitiesCatalog?.day || [];
+	const night = activitiesCatalog?.night || [];
+	const all = [...day, ...night];
+	const m = new Map();
+	for (const a of all) m.set(a.id, a);
+	return m;
+};
+
 export const Activities = () => {
 	const [phaseFilter, setPhaseFilter] = useState("all"); // all | day | night
 	const [branchFilter, setBranchFilter] = useState("all");
 	const [q, setQ] = useState("");
 	const [activeActivity, setActiveActivity] = useState(null);
 
+	// Datos desde backend
+	const [dbActivities, setDbActivities] = useState([]);
+	const [loading, setLoading] = useState(true);
+	const [err, setErr] = useState(null);
+
+	const BACKEND_URL = getBackendUrl();
+
+	// Índice del catálogo local (para enriquecer)
+	const catalogIndex = useMemo(() => buildCatalogIndex(), []);
+
+	// 1) Fetch de actividades activas desde DB (requiere JWT)
+	useEffect(() => {
+		const token = localStorage.getItem("pb_token");
+		if (!token) {
+			setErr("Necesitas iniciar sesión para ver el catálogo.");
+			setLoading(false);
+			setDbActivities([]);
+			return;
+		}
+		if (!BACKEND_URL) {
+			setErr("VITE_BACKEND_URL no está configurado.");
+			setLoading(false);
+			setDbActivities([]);
+			return;
+		}
+
+		let cancelled = false;
+
+		const load = async () => {
+			try {
+				setLoading(true);
+				setErr(null);
+
+				const res = await fetch(`${BACKEND_URL}/api/activities`, {
+					headers: {
+						Authorization: `Bearer ${token}`,
+					},
+				});
+
+				const data = await res.json().catch(() => null);
+
+				if (!res.ok) {
+					const msg = data?.msg || "Error cargando actividades";
+					throw new Error(msg);
+				}
+
+				if (!Array.isArray(data)) throw new Error("Respuesta inválida del backend (no es lista).");
+
+				if (!cancelled) setDbActivities(data);
+			} catch (e) {
+				if (!cancelled) {
+					setDbActivities([]);
+					setErr(e?.message || "Error cargando actividades");
+				}
+			} finally {
+				if (!cancelled) setLoading(false);
+			}
+		};
+
+		load();
+
+		return () => {
+			cancelled = true;
+		};
+	}, [BACKEND_URL]);
+
+	/**
+	 * 2) Normalización + enrich:
+	 * DB devuelve Activity.serialize() (campos típicos: id, external_id, name, description, activity_type, category...)
+	 * Nosotros convertimos a shape UI y añadimos lo que falte desde activitiesCatalog.
+	 */
 	const allActivities = useMemo(() => {
-		const day = activitiesCatalog?.day || [];
-		const night = activitiesCatalog?.night || [];
-		// Etiqueta fase para UI
-		return [
-			...day.map((a) => ({ ...a, _phaseLabel: "Día" })),
-			...night.map((a) => ({ ...a, _phaseLabel: "Noche" })),
-		];
-	}, []);
+		const out = [];
+
+		for (const a of dbActivities) {
+			const externalId = a.external_id;
+
+			// Mapeo básico desde DB
+			// activity_type en DB puede ser "day"/"night"/"both" según tu seed bulk :contentReference[oaicite:3]{index=3}
+			// Para catálogo, si es "both" lo tratamos como day por defecto (o lo duplicas en ambos, si prefieres).
+			const type = (a.activity_type || "").toLowerCase();
+			const phase = type === "night" ? "night" : "day";
+
+			const base = {
+				id: externalId,
+				phase,
+				title: a.name || externalId,
+				description: a.description || "",
+				branch: a.category?.name || "General",
+				// Campos que se enriquecerán si existen en catálogo
+				duration: undefined,
+				image: undefined,
+				branchBadge: undefined,
+				reason: undefined,
+				run: undefined,
+			};
+
+			// Enriquecimiento desde catálogo local (si existe)
+			const local = catalogIndex.get(externalId);
+			const enriched = local
+				? {
+					...base,
+					// Preferimos el contenido de catálogo para los campos "de UX"
+					phase: local.phase || base.phase,
+					branch: local.branch || base.branch,
+					duration: local.duration ?? base.duration,
+					image: local.image ?? base.image,
+					branchBadge: local.branchBadge ?? base.branchBadge,
+					reason: local.reason ?? base.reason,
+					run: local.run ?? base.run,
+				}
+				: base;
+
+			out.push({ ...enriched, _phaseLabel: phaseLabel(enriched.phase) });
+		}
+
+		return out;
+	}, [dbActivities, catalogIndex]);
 
 	const branches = useMemo(() => {
 		const set = new Set(allActivities.map((a) => a.branch).filter(Boolean));
@@ -46,11 +165,9 @@ export const Activities = () => {
 				if (branchFilter !== "all" && a.branch !== branchFilter) return false;
 				if (!query) return true;
 
-				const hay =
-					`${a.title || ""} ${a.description || ""} ${a.reason || ""}`.toLowerCase();
+				const hay = `${a.title || ""} ${a.description || ""} ${a.reason || ""}`.toLowerCase();
 				return hay.includes(query);
 			})
-			// Orden estable: primero prioridad, luego duración corta, luego título
 			.sort((a, b) => {
 				const pa = a.priority ? 1 : 0;
 				const pb = b.priority ? 1 : 0;
@@ -64,11 +181,10 @@ export const Activities = () => {
 
 	const onStart = (activity) => setActiveActivity(activity);
 
+	// Completar en backend (catálogo = 5 puntos)
 	const completeActivityBackend = async (activity) => {
 		const token = localStorage.getItem("pb_token");
 		if (!token) return null;
-
-		const BACKEND_URL = getBackendUrl();
 		if (!BACKEND_URL) return null;
 
 		try {
@@ -79,14 +195,14 @@ export const Activities = () => {
 					Authorization: `Bearer ${token}`,
 				},
 				body: JSON.stringify({
-					external_id: activity.id, // id frontend
+					external_id: activity.id, // id UI == external_id DB
 					session_type: activity.phase, // "day" | "night"
-					source: "catalog",            // 🔑 CLAVE
+					source: "catalog",
 					is_recommended: false,
 				}),
 			});
 
-			const data = await res.json();
+			const data = await res.json().catch(() => ({}));
 			if (!res.ok) throw new Error(data?.msg || "Error backend");
 
 			return data;
@@ -96,7 +212,25 @@ export const Activities = () => {
 		}
 	};
 
-	
+	// UI states
+	if (loading) {
+		return (
+			<div className="container py-4 py-lg-5">
+				<h1 className="h2 fw-bold mb-2">Actividades</h1>
+				<p className="text-secondary mb-0">Cargando catálogo…</p>
+			</div>
+		);
+	}
+
+	if (err) {
+		return (
+			<div className="container py-4 py-lg-5">
+				<h1 className="h2 fw-bold mb-2">Actividades</h1>
+				<div className="alert alert-warning mb-0">{err}</div>
+			</div>
+		);
+	}
+
 	return (
 		<div className="container py-4 py-lg-5">
 			<div className="d-flex flex-column flex-lg-row justify-content-between align-items-start gap-3 mb-4">
@@ -156,12 +290,10 @@ export const Activities = () => {
 				</div>
 			</div>
 
-			{/* Contador */}
 			<div className="d-flex justify-content-between align-items-center mb-3">
 				<div className="small text-secondary">
 					Mostrando <span className="fw-semibold">{filtered.length}</span> actividades
 				</div>
-				
 
 				<button
 					type="button"
@@ -176,16 +308,12 @@ export const Activities = () => {
 				</button>
 			</div>
 
-			{/* Grid */}
 			<div className="row g-4">
 				{filtered.map((a) => (
 					<div className="col-12 col-md-6 col-lg-4" key={a.id}>
-						{/* Reutilizamos ActivityCard.
-						    completed=false porque aún no sincronizamos completadas en catálogo (lo haremos luego). */}
 						<ActivityCard
 							activity={{
 								...a,
-								// Añadimos un hint de fase en el texto de reason si quieres (opcional):
 								reason: a.reason ? `${a._phaseLabel}: ${a.reason}` : `${a._phaseLabel}`,
 							}}
 							completed={false}
@@ -197,7 +325,6 @@ export const Activities = () => {
 				))}
 			</div>
 
-			{/* Modal “actividad en curso” (igual que Today, pero sin persistir completado aún) */}
 			{activeActivity && (
 				<>
 					<div className="modal d-block" tabIndex="-1" role="dialog" aria-modal="true">
@@ -211,8 +338,17 @@ export const Activities = () => {
 								<div className="modal-body">
 									<p className="text-secondary mb-2">{activeActivity.description}</p>
 
-									<div className="small text-secondary">
-										Placeholder. Runner: <span className="pb-mono">{activeActivity.run}</span>
+									<div className="mt-3 p-3 border rounded bg-dark">
+										<div className="fw-semibold mb-2">Ejercicio</div>
+
+										<ActivityRunner
+											activity={activeActivity}
+											onSaved={async () => {
+												// al guardar el check-in, marcamos completado en backend (catálogo)
+												await completeActivityBackend(activeActivity);
+												setActiveActivity(null);
+											}}
+										/>
 									</div>
 								</div>
 
@@ -220,17 +356,18 @@ export const Activities = () => {
 									<button className="btn btn-outline-secondary" onClick={() => setActiveActivity(null)}>
 										Cerrar
 									</button>
-									<button
-										className="btn btn-primary"
-										onClick={async () => {
-											// Intentar backend (5 puntos)
-											await completeActivityBackend(activeActivity);
 
-											setActiveActivity(null);
-										}}
-									>
-										Empezar ahora
-									</button>
+									{activeActivity.run !== "emotion_checkin" && (
+										<button
+											className="btn btn-primary"
+											onClick={async () => {
+												await completeActivityBackend(activeActivity);
+												setActiveActivity(null);
+											}}
+										>
+											Empezar ahora
+										</button>
+									)}
 								</div>
 							</div>
 						</div>

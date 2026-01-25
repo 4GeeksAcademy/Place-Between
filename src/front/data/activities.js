@@ -116,17 +116,17 @@ export const activitiesCatalog = {
 
   night: [
     {
-      id: "n-rec-emotion-pick",
+      id: "n-rec-emotion-check",
       phase: "night",
       title: "Identifica tu emoción (2 min)",
       branch: "Emoción",
       branchBadge: "text-bg-light border",
       duration: 2,
-      description: "Elige: Alegría, Tristeza, Ira, Miedo/Ansiedad.",
-      reason: "La emoción elegida alimenta el Espejo.",
+      description: "Selecciona emoción + una frase.",
+      reason: "Esto alimenta el Espejo y te ayuda a ver patrones.",
       image: IMG_NIGHT_HERO,
       priority: true,
-      run: "emotion_picker",
+      run: "emotion_checkin",
     },
     {
       id: "n-body-signal",

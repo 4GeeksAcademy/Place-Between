@@ -2,6 +2,7 @@ import React, { useEffect, useMemo, useState } from "react";
 import { useLocation } from "react-router-dom";
 import { ActivityCard } from "../components/ActivityCard";
 import { ProgressRing } from "../components/ProgressRing";
+import { ActivityRunner } from "../components/ActivityRunner";
 
 import { buildTodaySet } from "../data/todaySelector";
 import { weekdayLabelES } from "../data/weeklyPlan";
@@ -231,13 +232,50 @@ export const Today = () => {
 
     const recommended = useMemo(() => {
         if (!todaySetIds?.recommendedId) return null;
-        return activityMap.get(todaySetIds.recommendedId) || null;
+
+        const r = activityMap.get(todaySetIds.recommendedId) || null;
+
+        // Si el set congelado apunta a un ID que ya no existe en el catálogo,
+        // lo consideramos corrupto/obsoleto (p.ej. cambiaste activities.js).
+        return r;
     }, [todaySetIds, activityMap]);
 
     const pillars = useMemo(() => {
         const ids = todaySetIds?.pillarIds || [];
         return ids.map((id) => activityMap.get(id)).filter(Boolean);
     }, [todaySetIds, activityMap]);
+
+    useEffect(() => {
+        // Si todaySetIds existe pero recommended no se puede resolver en catálogo, regeneramos.
+        if (!todaySetIds) return;
+        if (todaySetIds.recommendedId && !activityMap.get(todaySetIds.recommendedId)) {
+            // regenerar set usando buildTodaySet y persistirlo
+            const { recommended: rec, pillars: ps } = buildTodaySet({
+                phaseKey,
+                dayIndex,
+                completedIds: completed,
+            });
+
+            const recommendedId = rec?.id || null;
+            const pillarIds = (ps || []).map((x) => x.id).filter(Boolean);
+
+            // fallback: si faltan pilares, rellenamos determinísticamente desde catálogo
+            if (recommendedId && pillarIds.length < 3) {
+                const pool = (activitiesCatalog?.[phaseKey] || [])
+                    .map((a) => a.id)
+                    .filter((id) => id !== recommendedId && !pillarIds.includes(id));
+                for (const id of pool) {
+                    if (pillarIds.length >= 3) break;
+                    pillarIds.push(id);
+                }
+            }
+
+            const newSet = { recommendedId, pillarIds };
+            saveTodaySet(userScope, dateKey, phaseKey, newSet);
+            setTodaySetIds(newSet);
+        }
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [todaySetIds, activityMap, phaseKey, dayIndex, completed, userScope, dateKey]);
 
     // Progreso (solo sobre set visible: recommended + 3)
     const totalCount = useMemo(() => {
@@ -461,8 +499,8 @@ export const Today = () => {
                     ))}
                 </div>
 
-                {/* Noche: bloque informativo extra (opcional) */}
-                {isNight && (
+                {/* Noche: bloque informativo extra (opcional para más adelante) */}
+                {false  && (
                     <div className="mt-4 mt-lg-5">
                         <div className="card shadow-sm pb-night">
                             <div className="card-body p-4 d-flex flex-column flex-md-row justify-content-between align-items-start gap-3">
@@ -514,11 +552,18 @@ export const Today = () => {
                                         <p className="mb-0">{activeActivity.description}</p>
 
                                         <div className="mt-3 p-3 border rounded bg-dark">
-                                            <div className="fw-semibold mb-1">Ejercicio</div>
-                                            <div className="small text-secondary">
-                                                Aquí irá el ActivityRunner real según <code>run</code>.
-                                            </div>
+                                            <div className="fw-semibold mb-2">Ejercicio</div>
+
+                                            <ActivityRunner
+                                                activity={activeActivity}
+                                                onSaved={async () => {
+                                                    // 1) guardar runner (ya hecho dentro), 2) completar actividad (puntos + espejo)
+                                                    await handleComplete(activeActivity);
+                                                    setActiveActivity(null);
+                                                }}
+                                            />
                                         </div>
+
                                     </div>
 
                                     <div className="modal-footer">
@@ -530,16 +575,18 @@ export const Today = () => {
                                             Cerrar
                                         </button>
 
-                                        <button
-                                            type="button"
-                                            className="btn btn-primary"
-                                            onClick={async () => {
-                                                await handleComplete(activeActivity);
-                                                setActiveActivity(null);
-                                            }}
-                                        >
-                                            Finalizar y guardar
-                                        </button>
+                                        {activeActivity.run !== "emotion_checkin" && (
+                                            <button
+                                                type="button"
+                                                className="btn btn-primary"
+                                                onClick={async () => {
+                                                    await handleComplete(activeActivity);
+                                                    setActiveActivity(null);
+                                                }}
+                                            >
+                                                Finalizar y guardar
+                                            </button>
+                                        )}
                                     </div>
                                 </div>
                             </div>
