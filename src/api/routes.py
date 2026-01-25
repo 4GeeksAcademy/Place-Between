@@ -203,20 +203,39 @@ def mirror_today():
     # Aggregate across sessions
     points_today = sum(s.points_earned or 0 for s in sessions)
 
-    # Activities across sessions
+    # Activities across sessions (enriquecido + puntos por categoría)
     activities = []
+    points_by_category = {}
+
     for s in sessions:
-        completions = ActivityCompletion.query.filter_by(
-            daily_session_id=s.id).all()
+        completions = (
+            ActivityCompletion.query
+            .join(Activity, ActivityCompletion.activity_id == Activity.id)
+            .join(ActivityCategory, Activity.category_id == ActivityCategory.id)
+            .filter(ActivityCompletion.daily_session_id == s.id)
+            .all()
+        )
+
         for c in completions:
-            # c.activity puede estar lazy-loaded; asumimos relación OK
+            cat_name = c.activity.category.name if c.activity and c.activity.category else "General"
+            pts = int(c.points_awarded or 0)
+
+            points_by_category[cat_name] = points_by_category.get(cat_name, 0) + pts
+
             activities.append({
                 "id": c.activity.id,
+                "external_id": c.activity.external_id,
                 "name": c.activity.name,
-                "points": c.points_awarded,
+                "category_name": cat_name,
+                "points": pts,
                 "session_type": s.session_type.value,
                 "completed_at": c.completed_at.isoformat() + "Z"
             })
+
+
+    # Orden cronológico (para sendero y lista)
+    activities.sort(key=lambda x: x.get("completed_at") or "")
+    
 
     # Latest emotion checkin across sessions
     latest_checkin = (
@@ -241,6 +260,7 @@ def mirror_today():
         "date": today.isoformat(),
         "sessions": [s.serialize() for s in sessions],
         "points_today": points_today,
+        "points_by_category": points_by_category,
         "activities": activities,
         "emotion": emotion
     }), 200
