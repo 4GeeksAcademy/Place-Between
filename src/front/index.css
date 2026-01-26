@@ -160,7 +160,7 @@
 .pb-auth-card {
   border-radius: 24px;
   overflow: hidden;
-  border: 1px solid rgba(0,0,0,0.08);
+  border: 1px solid rgba(0, 0, 0, 0.08);
   background: #fff;
 }
 
@@ -175,7 +175,7 @@
   inset: 0;
   background-size: cover;
   background-position: center;
-  opacity: 0.90;
+  opacity: 0.9;
 }
 
 .pb-auth-left-inner {
@@ -186,11 +186,16 @@
   flex-direction: column;
   gap: 16px;
   width: 100%;
-  background: linear-gradient(135deg, rgba(255,245,235,0.92), rgba(245,250,255,0.92));
+  background: linear-gradient(
+    135deg,
+    rgba(255, 245, 235, 0.92),
+    rgba(245, 250, 255, 0.92)
+  );
 }
 
-.pb-logo-mark{
-  width: 18px; height: 18px;
+.pb-logo-mark {
+  width: 18px;
+  height: 18px;
   display: inline-block;
   background: #0d6efd;
   clip-path: polygon(50% 0%, 100% 35%, 50% 100%, 0% 35%);
@@ -219,5 +224,680 @@
 .pb-auth-tab.active {
   background: #fff;
   color: #0d6efd;
-  box-shadow: 0 8px 24px rgba(0,0,0,0.08);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.08);
 }
+
+/* Today */
+.pb-today .pb-maxw {
+  max-width: 560px;
+}
+.pb-mono {
+  font-family:
+    ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono",
+    "Courier New", monospace;
+}
+
+.pb-progress {
+  border-radius: 18px;
+  border: 1px solid rgba(0, 0, 0, 0.08);
+  min-width: 320px;
+}
+
+.pb-night {
+  border-radius: 18px;
+  border: 1px solid rgba(0, 0, 0, 0.08);
+}
+
+.pb-activity {
+  border-radius: 18px;
+  border: 1px solid rgba(0, 0, 0, 0.08);
+  overflow: hidden;
+}
+
+.pb-activity-hero {
+  border-radius: 22px;
+}
+
+.pb-activity-imgWrap {
+  width: 100%;
+  height: 220px;
+  overflow: hidden;
+  background: #f8f9fa;
+}
+
+.pb-activity-hero .pb-activity-imgWrap {
+  height: 280px;
+}
+
+.pb-activity-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.pb-meta {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.pb-dot {
+  width: 4px;
+  height: 4px;
+  border-radius: 999px;
+  background: rgba(108, 117, 125, 0.6);
+  display: inline-block;
+}
+
+/* Dark theme (Noche) */
+.pb-today-night {
+  background:
+    radial-gradient(
+      1200px 600px at 20% 10%,
+      rgba(91, 107, 255, 0.22),
+      transparent 60%
+    ),
+    radial-gradient(
+      900px 450px at 90% 20%,
+      rgba(255, 153, 85, 0.12),
+      transparent 55%
+    ),
+    #0b1020;
+  min-height: calc(100vh - 64px);
+}
+
+.pb-today-night .pb-phase {
+  color: rgba(173, 181, 255, 0.95);
+}
+.pb-today-night h1,
+.pb-today-night h2,
+.pb-today-night h3 {
+  color: #f3f5ff;
+}
+.pb-today-night .pb-sub {
+  color: rgba(227, 230, 255, 0.75);
+}
+
+.pb-today-night .card {
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.1) !important;
+  color: #f3f5ff;
+}
+
+.pb-today-night .text-secondary {
+  color: rgba(227, 230, 255, 0.7) !important;
+}
+
+.pb-today-night a {
+  color: rgba(160, 175, 255, 0.95);
+}
+.pb-today-night a:hover {
+  color: rgba(200, 210, 255, 1);
+}
+
+.pb-today-night .modal-content {
+  background: #0f1630;
+  color: #f3f5ff;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+}
+.pb-today-night .modal-header,
+.pb-today-night .modal-footer {
+  border-color: rgba(255, 255, 255, 0.1);
+}
+
+/* Progress ring */
+.pb-ring {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.pb-ring-track {
+  stroke: rgba(108, 117, 125, 0.18);
+}
+
+.pb-ring-bar {
+  stroke: rgba(13, 110, 253, 0.95);
+  transform: rotate(-90deg);
+  transform-origin: 50% 50%;
+}
+
+.pb-ring-label {
+  position: absolute;
+  text-align: center;
+  line-height: 1.1;
+}
+
+.pb-ring-value {
+  font-weight: 800;
+}
+
+.pb-ring-sub {
+  font-size: 12px;
+  color: rgba(108, 117, 125, 0.9);
+}
+
+/* ===== Mirror - Between Places aesthetic ===== */
+
+.pb-card-soft {
+  border-radius: 22px;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.pb-mirror-hero {
+  background:
+    radial-gradient(1200px 500px at 20% 0%, rgba(180, 120, 255, 0.14), transparent 60%),
+    rgba(255, 255, 255, 0.03);
+}
+
+.pb-eyebrow {
+  font-size: 0.75rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: rgba(255, 255, 255, 0.55);
+  margin-bottom: 6px;
+}
+
+.pb-hero-title {
+  font-size: 1.6rem;
+  font-weight: 800;
+  line-height: 1.15;
+  margin-bottom: 10px;
+}
+
+.pb-hero-sub {
+  font-weight: 700;
+  color: rgba(255, 255, 255, 0.70);
+}
+
+.pb-hero-text {
+  color: rgba(255, 255, 255, 0.70);
+  max-width: 520px;
+}
+
+/* Orb */
+.pb-orb {
+  width: 180px;
+  height: 180px;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 255, 255, 0.10);
+  position: relative;
+  overflow: hidden;
+  flex: 0 0 auto;
+  /* color dinámico por clase emoción + intensidad (ver variables abajo) */
+  background: radial-gradient(circle at 30% 30%, var(--pb-glow), var(--pb-orb) 60%, rgba(0,0,0,0.2) 100%);
+  box-shadow: 0 0 40px color-mix(in oklab, var(--pb-glow) 55%, transparent);
+}
+
+.pb-orb-stars {
+  position: absolute;
+  inset: 0;
+  opacity: 0.28;
+  background: radial-gradient(#fff 1px, transparent 1px);
+}
+
+.pb-orb-stars-a { background-size: 18px 18px; }
+.pb-orb-stars-b { background-size: 28px 28px; opacity: 0.16; }
+
+/* Emotion badge */
+.pb-badge-emotion {
+  padding: 0.4em 0.6em;
+  color: #fff;
+  background: hsl(var(--pb-hue) var(--pb-sat) var(--pb-light));
+  border: 1px solid rgba(255, 255, 255, 0.10);
+  box-shadow: 0 0 18px color-mix(in oklab, hsl(var(--pb-hue) var(--pb-sat) 55%) 25%, transparent);
+}
+
+/* Details */
+.pb-details-summary {
+  cursor: pointer;
+}
+
+/* Progress */
+.pb-progress {
+  height: 10px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.08);
+  overflow: hidden;
+}
+
+.pb-progress-bar {
+  height: 100%;
+  border-radius: 999px;
+  background: rgba(168, 92, 255, 0.55);
+}
+
+/* Tiles (Mood Frequency) */
+.pb-tiles {
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.pb-tile {
+  height: 64px;
+  border-radius: 16px;
+  border: 1px solid rgba(255,255,255,0.08);
+  box-shadow: 0 10px 25px rgba(0,0,0,0.18);
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  padding: 10px 12px;
+  background: rgba(168, 92, 255, 0.10);
+}
+
+.pb-tile-title {
+  font-size: 0.85rem;
+  font-weight: 700;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.pb-tile-sub {
+  font-size: 0.80rem;
+  color: rgba(255,255,255,0.65);
+}
+
+/* Buckets de intensidad por categoría */
+.pb-b-1 { background: rgba(168, 92, 255, 0.08); }
+.pb-b-2 { background: rgba(168, 92, 255, 0.14); }
+.pb-b-3 { background: rgba(168, 92, 255, 0.22); }
+.pb-b-4 { background: rgba(168, 92, 255, 0.30); }
+.pb-b-5 { background: rgba(168, 92, 255, 0.38); }
+
+/* Trail */
+.pb-trail-wrap {
+  position: relative;
+  overflow-x: auto;
+  padding-bottom: 8px;
+}
+
+.pb-trail {
+  display: inline-flex;
+  align-items: center;
+  gap: 16px;
+  padding: 8px 4px;
+  min-width: 100%;
+}
+
+.pb-trail-connector {
+  width: 42px;
+  height: 3px;
+  border-radius: 999px;
+  background: rgba(255,255,255,0.18);
+}
+
+.pb-trail-node {
+  width: 14px;
+  height: 14px;
+  border-radius: 999px;
+  background: rgba(255,255,255,0.65);
+  box-shadow: 0 0 18px rgba(255,255,255,0.25);
+  flex: 0 0 auto;
+}
+
+.pb-trail-destination {
+  width: 18px;
+  height: 18px;
+  border-radius: 999px;
+  background: rgba(255,255,255,0.95);
+  box-shadow: 0 0 22px rgba(255,255,255,0.35);
+  margin-left: 8px;
+}
+
+/* Items del detalle */
+.pb-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 12px;
+  border-radius: 14px;
+  background: rgba(255,255,255,0.06);
+}
+
+.pb-item-stack {
+  display: block;
+}
+
+/* ===== Emoción/Intensidad -> variables CSS (sin inline) ===== */
+
+/* Hue por emoción */
+.pb-e-default { --pb-hue: 210; }
+.pb-e-alegria { --pb-hue: 48; }
+.pb-e-tristeza { --pb-hue: 205; }
+.pb-e-ira { --pb-hue: 2; }
+.pb-e-miedo { --pb-hue: 130; } /* verde oscuro */
+
+/* Saturación/Luz por intensidad (1..10) */
+.pb-i-1 { --pb-sat: 40%; --pb-light: 55%; }
+.pb-i-2 { --pb-sat: 46%; --pb-light: 53%; }
+.pb-i-3 { --pb-sat: 52%; --pb-light: 51%; }
+.pb-i-4 { --pb-sat: 58%; --pb-light: 49%; }
+.pb-i-5 { --pb-sat: 64%; --pb-light: 47%; }
+.pb-i-6 { --pb-sat: 70%; --pb-light: 45%; }
+.pb-i-7 { --pb-sat: 76%; --pb-light: 43%; }
+.pb-i-8 { --pb-sat: 82%; --pb-light: 41%; }
+.pb-i-9 { --pb-sat: 86%; --pb-light: 38%; }
+.pb-i-10 { --pb-sat: 90%; --pb-light: 35%; }
+
+/* Variables derivadas para orb */
+.pb-e-default,
+.pb-e-alegria,
+.pb-e-tristeza,
+.pb-e-ira,
+.pb-e-miedo {
+  --pb-orb: hsl(var(--pb-hue) var(--pb-sat) var(--pb-light));
+  --pb-glow: hsl(var(--pb-hue) var(--pb-sat) 60%);
+}
+
+/* ===== Mirror shell background (day/night) ===== */
+
+.pb-mirror-shell {
+  min-height: calc(100vh - 64px);
+  padding-top: 10px;
+  padding-bottom: 40px;
+}
+
+.pb-mirror-day {
+  background:
+    radial-gradient(1200px 650px at 20% 10%, rgba(120, 170, 255, 0.16), transparent 60%),
+    radial-gradient(900px 520px at 85% 15%, rgba(255, 190, 130, 0.14), transparent 55%),
+    radial-gradient(900px 520px at 50% 90%, rgba(168, 92, 255, 0.10), transparent 60%),
+    #f6f7fb;
+}
+
+.pb-mirror-night {
+  background:
+    radial-gradient(1200px 650px at 18% 10%, rgba(91, 107, 255, 0.20), transparent 60%),
+    radial-gradient(900px 520px at 85% 15%, rgba(255, 153, 85, 0.10), transparent 55%),
+    radial-gradient(900px 520px at 55% 85%, rgba(168, 92, 255, 0.10), transparent 60%),
+    #0b1020;
+}
+
+/* Night: make text readable globally inside mirror */
+.pb-mirror-night .text-secondary {
+  color: rgba(227, 230, 255, 0.75) !important;
+}
+
+.pb-mirror-night h1,
+.pb-mirror-night h2,
+.pb-mirror-night h3,
+.pb-mirror-night .h1,
+.pb-mirror-night .h2,
+.pb-mirror-night .h3 {
+  color: #f3f5ff;
+}
+
+/* ===== Mirror: text contrast (day/night) ===== */
+
+/* NIGHT */
+.pb-mirror-night {
+  color: rgba(245, 247, 255, 0.92);
+}
+
+.pb-mirror-night .card,
+.pb-mirror-night .card-body {
+  color: rgba(245, 247, 255, 0.92);
+}
+
+.pb-mirror-night .text-secondary {
+  color: rgba(227, 232, 255, 0.72) !important;
+}
+
+.pb-mirror-night h1,
+.pb-mirror-night h2,
+.pb-mirror-night h3,
+.pb-mirror-night .h1,
+.pb-mirror-night .h2,
+.pb-mirror-night .h3 {
+  color: rgba(250, 251, 255, 0.97);
+}
+
+.pb-mirror-night .small {
+  color: rgba(227, 232, 255, 0.76);
+}
+
+/* DAY */
+.pb-mirror-day {
+  color: rgba(18, 20, 28, 0.92);
+}
+
+.pb-mirror-day .card,
+.pb-mirror-day .card-body {
+  color: rgba(18, 20, 28, 0.92);
+}
+
+.pb-mirror-day .text-secondary {
+  color: rgba(58, 64, 86, 0.78) !important;
+}
+
+.pb-mirror-day h1,
+.pb-mirror-day h2,
+.pb-mirror-day h3,
+.pb-mirror-day .h1,
+.pb-mirror-day .h2,
+.pb-mirror-day .h3 {
+  color: rgba(12, 14, 20, 0.98);
+}
+
+.pb-mirror-day .small {
+  color: rgba(58, 64, 86, 0.82);
+}
+
+/* DAY: cards un poco más sólidas para legibilidad */
+.pb-mirror-day .pb-card-soft {
+  background: rgba(255, 255, 255, 0.70);
+  border: 1px solid rgba(20, 24, 36, 0.08);
+  box-shadow: 0 18px 45px rgba(0,0,0,0.10);
+}
+
+/* ===== Category colors (activity categories) ===== */
+.pb-cat-emocion      { --pb-cat: 48  90% 55%; }  /* dorado */
+.pb-cat-espejo       { --pb-cat: 285 85% 60%; }  /* violeta */
+.pb-cat-aprendizaje  { --pb-cat: 205 90% 60%; }  /* azul */
+.pb-cat-fisico       { --pb-cat: 150 75% 45%; }  /* verde */
+.pb-cat-regulacion   { --pb-cat: 320 75% 60%; }  /* magenta */
+
+.pb-cat-default      { --pb-cat: 210 20% 75%; }  /* gris claro */
+
+/* Tiles: borde + glow por categoría */
+.pb-tile {
+  border: 1px solid rgba(255,255,255,0.10);
+}
+.pb-tile.pb-cat-emocion,
+.pb-tile.pb-cat-espejo,
+.pb-tile.pb-cat-aprendizaje,
+.pb-tile.pb-cat-fisico,
+.pb-tile.pb-cat-regulacion,
+.pb-tile.pb-cat-default {
+  border-color: color-mix(in oklab, hsl(var(--pb-cat)) 45%, rgba(255,255,255,0.10));
+  box-shadow: 0 0 22px color-mix(in oklab, hsl(var(--pb-cat)) 22%, transparent);
+}
+
+/* Sendero: nodo ilumina según categoría */
+.pb-trail-node {
+  background: rgba(255,255,255,0.55);
+}
+.pb-trail-node.pb-cat-emocion,
+.pb-trail-node.pb-cat-espejo,
+.pb-trail-node.pb-cat-aprendizaje,
+.pb-trail-node.pb-cat-fisico,
+.pb-trail-node.pb-cat-regulacion,
+.pb-trail-node.pb-cat-default {
+  background: hsl(var(--pb-cat));
+  box-shadow: 0 0 18px color-mix(in oklab, hsl(var(--pb-cat)) 55%, transparent);
+}
+
+/* Conector un poco más visible */
+.pb-trail-connector {
+  background: rgba(255,255,255,0.22);
+}
+
+/* ===== Mirror DAY: fix whites that were tuned for NIGHT ===== */
+
+/* HERO text (eyebrow/sub/text) in DAY */
+.pb-mirror-day .pb-eyebrow {
+  color: rgba(18, 20, 28, 0.55);
+}
+
+.pb-mirror-day .pb-hero-sub {
+  color: rgba(18, 20, 28, 0.70);
+}
+
+.pb-mirror-day .pb-hero-text {
+  color: rgba(18, 20, 28, 0.70);
+}
+
+/* Si estás usando el background "pb-mirror-hero" también en DAY, hazlo más claro */
+.pb-mirror-day .pb-mirror-hero {
+  background:
+    radial-gradient(1200px 500px at 20% 0%, rgba(120, 170, 255, 0.14), transparent 60%),
+    rgba(255, 255, 255, 0.55);
+  border: 1px solid rgba(20, 24, 36, 0.08);
+}
+
+/* TILES: en DAY los textos secundarios no pueden ser blancos */
+.pb-mirror-day .pb-tile-title {
+  color: rgba(12, 14, 20, 0.92);
+}
+
+.pb-mirror-day .pb-tile-sub {
+  color: rgba(58, 64, 86, 0.85);
+}
+
+/* TILES: ajusta base para DAY (ahora eran muy "night") */
+.pb-mirror-day .pb-tile {
+  background: rgba(255, 255, 255, 0.72);
+  border-color: rgba(20, 24, 36, 0.10);
+  box-shadow: 0 12px 28px rgba(0,0,0,0.08);
+}
+
+/* Si usas buckets (pb-b-*) que estaban pensados para night, en DAY los hacemos legibles */
+.pb-mirror-day .pb-b-1 { background: rgba(255, 255, 255, 0.62); }
+.pb-mirror-day .pb-b-2 { background: rgba(255, 255, 255, 0.66); }
+.pb-mirror-day .pb-b-3 { background: rgba(255, 255, 255, 0.70); }
+.pb-mirror-day .pb-b-4 { background: rgba(255, 255, 255, 0.74); }
+.pb-mirror-day .pb-b-5 { background: rgba(255, 255, 255, 0.78); }
+
+/* Sendero: conectores visibles en DAY (en night funcionan, en day se pierden) */
+.pb-mirror-day .pb-trail-connector {
+  background: rgba(20, 24, 36, 0.22);
+}
+
+/* Sendero: el nodo "default" debe verse, pero los de categoría ya van coloreados */
+.pb-mirror-day .pb-trail-node {
+  background: rgba(20, 24, 36, 0.35);
+  box-shadow: 0 0 12px rgba(0,0,0,0.10);
+}
+
+/* Sendero: destino final en DAY (para que no sea un punto blanco sin contexto) */
+.pb-mirror-day .pb-trail-destination {
+  background: rgba(12, 14, 20, 0.25);
+  box-shadow: 0 0 14px rgba(0,0,0,0.10);
+  border: 1px solid rgba(20, 24, 36, 0.12);
+}
+
+/* ===== Restore category colors in DAY (tiles + trail) ===== */
+
+/* TILES: en DAY, las categorías deben teñir el fondo */
+.pb-mirror-day .pb-tile.pb-cat-emocion,
+.pb-mirror-day .pb-tile.pb-cat-espejo,
+.pb-mirror-day .pb-tile.pb-cat-aprendizaje,
+.pb-mirror-day .pb-tile.pb-cat-fisico,
+.pb-mirror-day .pb-tile.pb-cat-regulacion,
+.pb-mirror-day .pb-tile.pb-cat-default {
+  background: color-mix(in oklab, hsl(var(--pb-cat)) 18%, rgba(255, 255, 255, 0.88));
+  border-color: color-mix(in oklab, hsl(var(--pb-cat)) 45%, rgba(20, 24, 36, 0.12));
+  box-shadow: 0 14px 30px rgba(0,0,0,0.08), 0 0 18px color-mix(in oklab, hsl(var(--pb-cat)) 20%, transparent);
+}
+
+/* TILES: texto siempre legible sobre fondo claro */
+.pb-mirror-day .pb-tile.pb-cat-emocion .pb-tile-title,
+.pb-mirror-day .pb-tile.pb-cat-espejo .pb-tile-title,
+.pb-mirror-day .pb-tile.pb-cat-aprendizaje .pb-tile-title,
+.pb-mirror-day .pb-tile.pb-cat-fisico .pb-tile-title,
+.pb-mirror-day .pb-tile.pb-cat-regulacion .pb-tile-title,
+.pb-mirror-day .pb-tile.pb-cat-default .pb-tile-title {
+  color: rgba(12, 14, 20, 0.95);
+}
+
+.pb-mirror-day .pb-tile.pb-cat-emocion .pb-tile-sub,
+.pb-mirror-day .pb-tile.pb-cat-espejo .pb-tile-sub,
+.pb-mirror-day .pb-tile.pb-cat-aprendizaje .pb-tile-sub,
+.pb-mirror-day .pb-tile.pb-cat-fisico .pb-tile-sub,
+.pb-mirror-day .pb-tile.pb-cat-regulacion .pb-tile-sub,
+.pb-mirror-day .pb-tile.pb-cat-default .pb-tile-sub {
+  color: rgba(58, 64, 86, 0.88);
+}
+
+/* SENDERO: en DAY, los nodos de categoría deben ganar a la regla base */
+.pb-mirror-day .pb-trail-node.pb-cat-emocion,
+.pb-mirror-day .pb-trail-node.pb-cat-espejo,
+.pb-mirror-day .pb-trail-node.pb-cat-aprendizaje,
+.pb-mirror-day .pb-trail-node.pb-cat-fisico,
+.pb-mirror-day .pb-trail-node.pb-cat-regulacion,
+.pb-mirror-day .pb-trail-node.pb-cat-default {
+  background: hsl(var(--pb-cat));
+  box-shadow: 0 0 14px color-mix(in oklab, hsl(var(--pb-cat)) 55%, transparent);
+}
+
+/* SENDERO: conectores un poco más visibles en DAY */
+.pb-mirror-day .pb-trail-connector {
+  background: rgba(20, 24, 36, 0.22);
+}
+
+/* ===== Hero aura: emotion + intensity ===== */
+
+/* Aura base: usa --pb-aura (RGB) y --pb-auraPow (0..1) */
+.pb-mirror-hero {
+  position: relative;
+  overflow: hidden;
+}
+
+.pb-mirror-hero::before {
+  content: "";
+  position: absolute;
+  inset: -40px;
+  pointer-events: none;
+  background:
+    radial-gradient(800px 420px at 22% 30%,
+      rgba(var(--pb-aura, 120,170,255), calc(0.10 + 0.22 * var(--pb-auraPow, 0.5))),
+      transparent 62%
+    ),
+    radial-gradient(650px 380px at 62% 75%,
+      rgba(var(--pb-aura, 120,170,255), calc(0.06 + 0.16 * var(--pb-auraPow, 0.5))),
+      transparent 60%
+    );
+  filter: blur(2px);
+  opacity: 1;
+}
+
+/* Asegura que el contenido vaya por encima del aura */
+.pb-mirror-hero > .card-body {
+  position: relative;
+  z-index: 1;
+}
+
+/* Emoción -> color aura (RGB). Ajusta a tu gusto */
+.pb-e-alegria  { --pb-aura: 255, 196, 68; }   /* dorado */
+.pb-e-tristeza { --pb-aura: 90, 160, 255; }   /* azul */
+.pb-e-ira      { --pb-aura: 255, 92, 92; }    /* rojo */
+.pb-e-miedo    { --pb-aura: 18, 84, 46; }     /* verde oscuro */
+
+/* Intensidad -> potencia (1..10) */
+.pb-i-1  { --pb-auraPow: 0.10; }
+.pb-i-2  { --pb-auraPow: 0.18; }
+.pb-i-3  { --pb-auraPow: 0.26; }
+.pb-i-4  { --pb-auraPow: 0.34; }
+.pb-i-5  { --pb-auraPow: 0.42; }
+.pb-i-6  { --pb-auraPow: 0.50; }
+.pb-i-7  { --pb-auraPow: 0.58; }
+.pb-i-8  { --pb-auraPow: 0.68; }
+.pb-i-9  { --pb-auraPow: 0.78; }
+.pb-i-10 { --pb-auraPow: 0.90; }
+

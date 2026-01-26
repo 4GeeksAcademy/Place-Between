@@ -16,7 +16,6 @@ import { Profile } from "./pages/Profile";
 export const router = createBrowserRouter([
   // Público
   {
-    path: "/",
     element: <PublicLayout />,
     children: [
       { path: "/", element: <Home /> },
@@ -27,7 +26,6 @@ export const router = createBrowserRouter([
 
   // App
   {
-    path: "/",
     element: <AppLayout />,
     children: [
       { path: "/today", element: <Today /> },

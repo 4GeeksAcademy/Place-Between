@@ -183,6 +183,10 @@ class EmotionCheckin(db.Model):
     __table_args__ = (
         Index("ix_emotion_checkins_session", "daily_session_id"),
         Index("ix_emotion_checkins_emotion", "emotion_id"),
+        CheckConstraint(
+            "intensity >= 1 AND intensity <= 10",
+            name="ck_emotion_checkin_intensity_range"
+        ),
     )
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True)
@@ -194,6 +198,8 @@ class EmotionCheckin(db.Model):
         Integer, ForeignKey("emotions.id"), nullable=False
     )
 
+    intensity: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    
     note: Mapped[str | None] = mapped_column(String(300), nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime, nullable=False, default=datetime.utcnow)
 
@@ -205,6 +211,7 @@ class EmotionCheckin(db.Model):
             "id": self.id,
             "daily_session_id": self.daily_session_id,
             "emotion_id": self.emotion_id,
+            "intensity": self.intensity,
             "note": self.note,
             "created_at": self.created_at.isoformat() + "Z",
         }
@@ -231,6 +238,14 @@ class Activity(db.Model):
     __table_args__ = (Index("ix_activities_category", "category_id"),)
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    
+    # ID que viene del frontend (activities.js)
+    external_id: Mapped[str] = mapped_column(
+        String(120),
+        unique=True,
+        nullable=False,
+        index=True
+    )
 
     category_id: Mapped[int] = mapped_column(
         Integer, ForeignKey("activity_categories.id"), nullable=False
@@ -252,6 +267,7 @@ class Activity(db.Model):
     def serialize(self):
         return {
             "id": self.id,
+            "external_id": self.external_id,
             "category_id": self.category_id,
             "name": self.name,
             "description": self.description,
@@ -269,7 +285,12 @@ class ActivityCompletion(db.Model):
     __table_args__ = (
         Index("ix_activity_completions_session", "daily_session_id"),
         Index("ix_activity_completions_activity", "activity_id"),
-        CheckConstraint("points_awarded IN (0, 1, 3)", name="ck_activity_points_nonneg"),
+        UniqueConstraint(
+            "daily_session_id",
+            "activity_id",
+            name="uq_session_activity"
+        ),
+        CheckConstraint("points_awarded IN (0, 5, 10, 20)", name="ck_activity_points"),
     )
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True)
@@ -281,7 +302,7 @@ class ActivityCompletion(db.Model):
         Integer, ForeignKey("activities.id"), nullable=False
     )
 
-    # Guardas el resultado final: 3 / 1 / 0
+    # Guardas el resultado final: 20 / 10 / 5
     # - 0 si ya se alcanzó el límite de 3 actividades con puntos en esa sesión
     points_awarded: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
 
