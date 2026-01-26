@@ -660,11 +660,11 @@ def create_goal(user_id):
 #### POST DAILY SESSION GOALS
 
 @api.route("/sessions/<int:session_id>/goals/<int:goal_id>", methods=["POST"])
-def plan_goal(daily_session_id):
+def plan_goal(session_id):
     goal_id = request.json["goal_id"]
 
     dailyGoal = DailySessionGoal(
-        daily_session_id=daily_session_id,
+        daily_session_id=session_id,
         goal_id=goal_id
     )
     db.session.add(dailyGoal)
@@ -674,12 +674,12 @@ def plan_goal(daily_session_id):
 #### POST  GOAL PROGRESS
 
 @api.route("/sessions/<int:session_id>/goals/<int:goal_id>/progress", methods=["POST"])
-def goal_progress(daily_session_id, goal_id):
+def goal_progress(session_id, goal_id):
     goal = Goal.query.get(goal_id)
 
     goal_progress = GoalProgress(
         goal_id=goal_id,
-        daily_session_id=daily_session_id,
+        daily_session_id=session_id,
         delta_value=1
     )
 
@@ -702,7 +702,7 @@ def goal_progress(daily_session_id, goal_id):
 
 #### instalar pytz para asegurar hora local del usuario dependiendo de su ubicación 
 #### pip install pytz
-#### 
+#### IMPORTANTE !!!  ver services.py para función de envío de email
 
 @api.route("/internal_place/reminders/send", methods=["POST"])
 def send_reminders():
@@ -747,7 +747,7 @@ def send_reminders():
                     if diff.total_seconds() > reminder.inactive_after_minutes * 60:
                         should_send = True
 
-        # SEND email
+        # send email
         if should_send:
             send_email(user, reminder)
             reminder.last_sent_at = now_utc
@@ -758,11 +758,11 @@ def send_reminders():
     return jsonify({"sent": sent}), 200
 
 
-### GET EMOTION MUSIC
+### GET EMOTION MUSIC AND DEFAULT TRACK
 
 DEFAULT_TRACK = "https://soundcloud.com/sant_iagoo/sets/default-track"
 
-@api.route("/users/<int:user_id>/sessions/<int:session_id>/emotion-music", methods=["GET"])
+@api.route("/music/emotion-music", methods=["GET"])
 def get_session_emotion_music(daily_session_id):
     checkin = (
         EmotionCheckin.query.filter_by(daily_session_id=daily_session_id)
@@ -778,4 +778,10 @@ def get_session_emotion_music(daily_session_id):
     return jsonify({
         "emotion": checkin.emotion.name,
         "url_music": checkin.emotion.url_music or DEFAULT_TRACK
+    }), 200
+
+@api.route("/music/default", methods=["GET"])
+def get_default_music():
+    return jsonify({
+        "url_music": DEFAULT_TRACK
     }), 200
