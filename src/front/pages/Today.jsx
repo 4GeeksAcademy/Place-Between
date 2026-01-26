@@ -3,6 +3,7 @@ import { useLocation } from "react-router-dom";
 import { ActivityCard } from "../components/ActivityCard";
 import { ProgressRing } from "../components/ProgressRing";
 import { ActivityRunner } from "../components/ActivityRunner";
+import { PointsToast } from "../components/PointsToast";
 
 import { buildTodaySet } from "../data/todaySelector";
 import { weekdayLabelES } from "../data/weeklyPlan";
@@ -335,7 +336,6 @@ export const Today = () => {
             else reason = "Fuera de fase (bonus reducido)";
 
             setLastPointsToast({ points: res.points, reason });
-            setTimeout(() => setLastPointsToast(null), 2200);
         }
     };
 
@@ -442,23 +442,12 @@ export const Today = () => {
                 </div>
 
                 {/* Toast puntos */}
-                {lastPointsToast && (
-                    <div
-                        className="position-fixed bottom-0 end-0 p-3"
-                        style={{ zIndex: 1080 }}
-                        aria-live="polite"
-                        aria-atomic="true"
-                    >
-                        <div className={`toast show border-0 shadow-sm ${isNight ? "text-bg-dark" : ""}`}>
-                            <div className="toast-body">
-                                <div className="fw-semibold">+{lastPointsToast.points} puntos</div>
-                                <div className={`small ${isNight ? "opacity-75" : "text-secondary"}`}>
-                                    {lastPointsToast.reason}
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                )}
+                <PointsToast
+                    toast={lastPointsToast}
+                    isNight={isNight}
+                    onClose={() => setLastPointsToast(null)}
+                    durationMs={2200}
+                />
 
                 {/* Recommended */}
                 {recommended ? (
