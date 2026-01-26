@@ -10,7 +10,6 @@ const getDateKey = () => {
   return `${yyyy}-${mm}-${dd}`;
 };
 
-
 const storageKey = (dateKey) => `pb_${getUserScope()}_points_${dateKey}`;
 
 /**
@@ -108,3 +107,45 @@ export function awardPointsOnce({
 
   return { awarded: true, points, total: next.total };
 }
+
+/**
+ * Normaliza la respuesta del backend de /activities/complete
+ * a un shape único para UI (toast, logs, etc.)
+ */
+export const normalizePointsResult = (data, context = {}) => {
+  if (!data) {
+    return null;
+  }
+
+  // Caso idempotente: ya completada
+  if (data.already_completed) {
+    return {
+      points: 0,
+      reason: "Ya habías completado esta actividad hoy",
+    };
+  }
+
+  const points = Number(data.points_awarded ?? data.points ?? 0);
+
+  // Contexto opcional para afinar el mensaje
+  const { source = "today", isRecommended = false } = context;
+
+  let reason = "Actividad completada";
+
+  if (points === 20) {
+    reason = "Actividad recomendada completada";
+  } else if (points === 10) {
+    reason = "Actividad completada";
+  } else if (points === 5) {
+    reason = "Actividad completada desde el catálogo";
+  } else if (points === 0) {
+    reason = "Completada sin puntos";
+  }
+
+  // Override explícito por contexto
+  if (source === "catalog") {
+    reason = "Añadida al Espejo desde el catálogo";
+  }
+
+  return { points, reason };
+};

@@ -16,8 +16,6 @@ const ALLOWED_EMOTION_NAMES = new Set([
     "tristeza",
     "ira",
     "miedo",
-    "miedo/ansiedad",
-    "ansiedad",
 ]);
 
 const getIntensityTier = (n) => {
