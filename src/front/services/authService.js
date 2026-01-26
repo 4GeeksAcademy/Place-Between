@@ -82,3 +82,12 @@ export function getUser() {
     return null;
   }
 }
+
+export function getUserScope() {
+  try {
+    const u = JSON.parse(localStorage.getItem("pb_user") || "null");
+    return u?.id ? `u${u.id}` : "anon";
+  } catch {
+    return "anon";
+  }
+}
