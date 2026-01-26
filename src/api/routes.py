@@ -27,7 +27,6 @@ api = Blueprint("api", __name__)
 api = Blueprint("api", __name__)
 CORS(api)
 
-
 def dev_only():
     # En tu app.py, FLASK_DEBUG=1 implica desarrollo :contentReference[oaicite:4]{index=4}
     return os.getenv("FLASK_DEBUG") == "1"
@@ -48,15 +47,10 @@ def handle_hello():
         "message": "Hello! I'm a message that came from the backend."
     }), 200
 
-
-# -------------------------
-# AUTH
-# -------------------------
 # -------------------------
 # AUTH
 # -------------------------
 
-@api.route("/register", methods=["POST"])
 @api.route("/register", methods=["POST"])
 def register():
     body = request.get_json(silent=True) or {}
@@ -93,8 +87,6 @@ def register():
 
 
 @api.route("/login", methods=["POST"])
-
-@api.route("/login", methods=["POST"])
 def login():
     body = request.get_json(silent=True) or {}
 
@@ -129,11 +121,6 @@ def login():
         "user": user.serialize()
     }), 200
 
-
-# -------------------------
-# SESSIONS (MINIMAL, CLEAN)
-# -------------------------
-@api.route("/sessions", methods=["POST"])
 # -------------------------
 # SESSIONS (MINIMAL, CLEAN)
 # -------------------------
@@ -1003,3 +990,137 @@ def dev_deactivate_activity():
 #     pass
 
 # ... other session/emotion/activity completion routes TODO ...
+
+######## GOALS y REMINDERS
+
+#### POST GOAL 
+
+@api.route("/users/<int:user_id>/goals", methods=["POST"])
+def create_goal(user_id):
+    goal = Goal(user_id=user_id, **request.json)
+    db.session.add(goal)
+    db.session.commit()
+    return jsonify(goal.serialize()), 201
+
+#### POST DAILY SESSION GOALS
+
+@api.route("/sessions/<int:session_id>/goals/<int:goal_id>", methods=["POST"])
+def plan_goal(daily_session_id):
+    goal_id = request.json["goal_id"]
+
+    dailyGoal = DailySessionGoal(
+        daily_session_id=daily_session_id,
+        goal_id=goal_id
+    )
+    db.session.add(dailyGoal)
+    db.session.commit()
+    return jsonify(dailyGoal.serialize()), 201
+
+#### POST  GOAL PROGRESS
+
+@api.route("/sessions/<int:session_id>/goals/<int:goal_id>/progress", methods=["POST"])
+def goal_progress(daily_session_id, goal_id):
+    goal = Goal.query.get(goal_id)
+
+    goal_progress = GoalProgress(
+        goal_id=goal_id,
+        daily_session_id=daily_session_id,
+        delta_value=1
+    )
+
+    goal.current_value += 1
+
+    if goal.current_value >= goal.target_value:
+        goal.completed_at = datetime.utcnow()
+        goal.is_active = False
+
+    db.session.add(goal_progress)
+    db.session.commit()
+
+    return jsonify({
+        "goal": goal.serialize(),
+        "progress": goal_progress.serialize()
+    }), 201
+
+
+#### REMINDERS (LOOPS)
+
+#### instalar pytz para asegurar hora local del usuario dependiendo de su ubicación 
+#### pip install pytz
+#### 
+
+@api.route("/internal_place/reminders/send", methods=["POST"])
+def send_reminders():
+    now_utc = datetime.utcnow().replace(tzinfo=pytz.utc)
+    reminders = Reminder.query.filter_by(is_active=True).all()
+    sent = 0
+
+    for reminder in reminders:
+        user = reminder.user
+        user_now = now_utc.astimezone(pytz.timezone(user.timezone))
+        should_send = False
+
+        # daily filter 
+        if reminder.days_of_week != "daily":
+            allowed = reminder.days_of_week.split(",")
+            today = user_now.strftime("%a").lower()[:3]
+            if today not in allowed:
+                continue
+
+        # FIXED TIME MODE 
+        if reminder.mode == "fixed":
+            if reminder.local_time:
+                already_sent_today = (
+                    reminder.last_sent_at and
+                    reminder.last_sent_at.date() == user_now.date()
+                )
+
+                if not already_sent_today:
+                    if (
+                        user_now.hour == reminder.local_time.hour and
+                        user_now.minute == reminder.local_time.minute
+                    ):
+                        should_send = True
+
+        # INACTIVITY 
+        elif reminder.mode == "inactivity":
+            if reminder.inactive_after_minutes:
+                if not user.last_activity_at:
+                    should_send = True
+                else:
+                    diff = user_now - user.last_activity_at
+                    if diff.total_seconds() > reminder.inactive_after_minutes * 60:
+                        should_send = True
+
+        # SEND email
+        if should_send:
+            send_email(user, reminder)
+            reminder.last_sent_at = now_utc
+            sent += 1
+
+    db.session.commit()
+
+    return jsonify({"sent": sent}), 200
+
+
+### GET EMOTION MUSIC
+
+DEFAULT_TRACK = "https://soundcloud.com/sant_iagoo/sets/default-track"
+
+@api.route("/users/<int:user_id>/sessions/<int:session_id>/emotion-music", methods=["GET"])
+def get_session_emotion_music(daily_session_id):
+    checkin = (
+        EmotionCheckin.query.filter_by(daily_session_id=daily_session_id)
+        .order_by(EmotionCheckin.created_at.desc())
+        .first()
+    )
+    if not checkin or not checkin.emotion:
+        return jsonify({
+            "emotion": None,
+            "url_music": DEFAULT_TRACK
+        }), 200
+
+    return jsonify({
+        "emotion": checkin.emotion.name,
+        "url_music": checkin.emotion.url_music or DEFAULT_TRACK
+    }), 200
