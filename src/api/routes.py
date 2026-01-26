@@ -701,17 +701,15 @@ def goal_progress(daily_session_id, goal_id):
 
 #### REMINDERS (LOOPS)
 
+#### instalar pytz para asegurar hora local del usuario dependiendo de su ubicación 
 #### pip install pytz
 #### 
 
-@api.route("/internal/reminders/send", methods=["POST"])
+@api.route("/internal_place/reminders/send", methods=["POST"])
 def send_reminders():
     now_utc = datetime.utcnow().replace(tzinfo=pytz.utc)
     reminders = Reminder.query.filter_by(is_active=True).all()
-
     sent = 0
-
-    
 
     for reminder in reminders:
         user = reminder.user
