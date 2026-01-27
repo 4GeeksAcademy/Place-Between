@@ -3,6 +3,7 @@
 
 import { EmotionCheckinRunner } from "./EmotionCheckinRunner";
 import { BreathingGuidedRunner } from "./BreathingGuidedRunner";
+import { Grounding54321Runner } from "./Grounding54321Runner";
 
 /**
  * runnerMap:
@@ -15,6 +16,7 @@ import { BreathingGuidedRunner } from "./BreathingGuidedRunner";
 export const runnerMap = {
   emotion_checkin: EmotionCheckinRunner,
   breathing_guided: BreathingGuidedRunner,
+  thought_cut: Grounding54321Runner,
 };
 
 /**
@@ -46,3 +48,5 @@ export const knownRunTypes = new Set([
   "reframe",
   "night_journal",
 ]);
+
+export const hasRunner = (type) => Boolean(type && runnerMap[type]);

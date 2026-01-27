@@ -109,7 +109,42 @@ export const activitiesCatalog = {
       duration: 4,
       description: "Ejercicio breve para reducir rumia y ansiedad.",
       image: IMG_DAY_3,
-      run: "thought_cut",
+      run: {
+        type: "thought_cut",
+        variant: "grounding_54321",
+        steps: [
+          {
+            key: "see",
+            label: "5 cosas que ves",
+            count: 5,
+            placeholder: "Ej: una lámpara, la pantalla, una planta…",
+          },
+          {
+            key: "feel",
+            label: "4 cosas que sientes",
+            count: 4,
+            placeholder: "Ej: el aire en la piel, el peso del cuerpo…",
+          },
+          {
+            key: "hear",
+            label: "3 cosas que oyes",
+            count: 3,
+            placeholder: "Ej: tráfico, ventilador, voces…",
+          },
+          {
+            key: "smell",
+            label: "2 cosas que hueles",
+            count: 2,
+            placeholder: "Ej: café, jabón, aire…",
+          },
+          {
+            key: "taste",
+            label: "1 cosa que saboreas",
+            count: 1,
+            placeholder: "Ej: menta, agua, sabor residual…",
+          },
+        ],
+      },
     },
     {
       id: "d-goals-review",
