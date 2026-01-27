@@ -74,7 +74,7 @@ export const ActivityCard = ({
                         Empezar
                     </button>
 
-                    {/* Si quieres, aquí podríamos añadir un botón “Ver detalles” en el futuro */}
+                    {/* Aquí podríamos añadir un botón “Ver detalles” en el futuro */}
                 </div>
 
                 {/* Mensaje claro cuando viene de BD sin enrich */}

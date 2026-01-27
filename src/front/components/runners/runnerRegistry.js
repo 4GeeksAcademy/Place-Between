@@ -2,6 +2,7 @@
 // Registro central de runners (escalable y validable)
 
 import { EmotionCheckinRunner } from "./EmotionCheckinRunner";
+import { BreathingGuidedRunner } from "./BreathingGuidedRunner";
 
 /**
  * runnerMap:
@@ -13,6 +14,7 @@ import { EmotionCheckinRunner } from "./EmotionCheckinRunner";
  */
 export const runnerMap = {
   emotion_checkin: EmotionCheckinRunner,
+  breathing_guided: BreathingGuidedRunner,
 };
 
 /**
@@ -21,6 +23,7 @@ export const runnerMap = {
  */
 export const runnerAliases = {
   emotion_picker: "emotion_checkin",
+  breathing_guided: BreathingGuidedRunner,
 };
 
 /**

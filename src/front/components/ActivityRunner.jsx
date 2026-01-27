@@ -30,9 +30,16 @@ const normalizeRun = (run) => {
  * Aplica aliases legacy → canonical.
  */
 const canonicalizeType = (type) => {
-    const t = String(type || "").trim();
+    // Solo aceptamos string como tipo válido
+    const t = typeof type === "string" ? type.trim() : "";
     if (!t) return "";
-    return runnerAliases[t] || t;
+
+    const alias = runnerAliases[t];
+
+    // Alias válido SOLO si es string
+    if (typeof alias === "string" && alias.trim()) return alias.trim();
+
+    return t;
 };
 
 /**
@@ -54,7 +61,7 @@ const UnimplementedRun = ({ type }) => (
     <div className="alert alert-secondary mb-0">
         <div className="fw-semibold mb-1">Runner pendiente</div>
         <div className="small">
-            <span className="pb-mono">{type}</span> aún no está implementado.
+            <span className="pb-mono">{typeof type === "string" ? type : "—"}</span> no está implementado aún.
         </div>
     </div>
 );

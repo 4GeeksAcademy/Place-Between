@@ -40,7 +40,43 @@ export const activitiesCatalog = {
       reason: "Ideal para empezar el día con claridad.",
       image: IMG_DAY_HERO,
       priority: true,
-      run: "breathing_guided",
+      run: {
+        type: "breathing_guided",
+
+        // Preset elegido por defecto
+        defaultPreset: "standard", // quick | standard | deep
+
+        // Presets de duración (2/3/5 min) con patrón base 4-6
+        presets: {
+          quick: {
+            label: "Rápido (2 min)",
+            totalSeconds: 120,
+            pattern: "calm_4_2_6",
+          },
+          standard: {
+            label: "Estándar (3 min)",
+            totalSeconds: 180,
+            pattern: "calm_4_2_6",
+          },
+          deep: {
+            label: "Profundo (5 min)",
+            totalSeconds: 300,
+            pattern: "calm_4_2_6",
+          },
+        },
+
+        // Selector secundario de patrón (opcional en UI del runner)
+        patterns: {
+          calm_4_2_6: { label: "Calma (4–2–6)", inhale: 4, hold: 2, exhale: 6 },
+          box_4_4_4_4: {
+            label: "Box (4–4–4–4)",
+            inhale: 4,
+            hold: 4,
+            exhale: 4,
+            hold2: 4,
+          },
+        },
+      },
     },
     {
       id: "d-soma-check",

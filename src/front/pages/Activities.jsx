@@ -44,6 +44,9 @@ export const Activities = () => {
 	// Índice del catálogo local (para enriquecer)
 	const catalogIndex = useMemo(() => buildCatalogIndex(), []);
 
+	// Helper: extrae run.type normalizado de activity
+	const getRunType = (a) => (typeof a?.run === "string" ? a.run : a?.run?.type);
+
 	// 1) Fetch de actividades activas desde DB (requiere JWT)
 	useEffect(() => {
 		const token = localStorage.getItem("pb_token");
@@ -352,7 +355,7 @@ export const Activities = () => {
 								<div className="modal-body">
 									<p className="text-secondary mb-2">{activeActivity.description}</p>
 
-									<div className="mt-3 p-3 border rounded bg-dark">
+									<div className="mt-3 p-3 border rounded bg-body-tertiary">
 										<div className="fw-semibold mb-2">Ejercicio</div>
 
 										<ActivityRunner
@@ -371,7 +374,7 @@ export const Activities = () => {
 										Cerrar
 									</button>
 
-									{activeActivity.run !== "emotion_checkin" && (
+									{getRunType(activeActivity) !== "emotion_checkin" && getRunType(activeActivity) !== "breathing_guided" && (
 										<button
 											className="btn btn-primary"
 											onClick={async () => {
