@@ -191,14 +191,19 @@ export const BreathingGuidedRunner = ({ run, activity, onSaved }) => {
     const orbScale = useMemo(() => {
         if (stage !== "running") return 0.9;
 
-        const base = 0.85; // más pequeño al inicio
-        const peak = 1.30; // más grande arriba
+        const base = 0.85;
+        const peak = 1.30;
 
         if (currentPhase.key === "inhale") return base + (peak - base) * phaseProgress;
         if (currentPhase.key === "exhale") return peak - (peak - base) * phaseProgress;
 
-        // hold / hold2
-        return peak;
+        // hold: mantener arriba (tras inhalar)
+        if (currentPhase.key === "hold") return peak;
+
+        // hold2: mantener abajo (tras exhalar)
+        if (currentPhase.key === "hold2") return base;
+
+        return 1;
     }, [stage, currentPhase.key, phaseProgress]);
 
     // ---------- 8) Color: intensidad + matiz por fase ----------
@@ -364,8 +369,7 @@ export const BreathingGuidedRunner = ({ run, activity, onSaved }) => {
     // stage === "running"
     return (
         <div>
-            <div className="d-flex justify-content-between align-items-center mb-2">
-                <div className="fw-semibold">{activity?.title || ""}</div>
+            <div className="d-flex justify-content-end align-items-center mb-2">
                 <div className="pb-mono fw-bold">{fmt(remainingSec)}</div>
             </div>
 

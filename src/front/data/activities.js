@@ -32,7 +32,7 @@ export const activitiesCatalog = {
     {
       id: "d-rec-breath-5",
       phase: "day",
-      title: "Respiración guiada (5 min)",
+      title: "Respiración guiada",
       branch: "Regulación",
       branchBadge: "text-bg-primary",
       duration: 5,
@@ -114,7 +114,7 @@ export const activitiesCatalog = {
     {
       id: "d-goals-review",
       phase: "day",
-      title: "Revisar objetivos (2 min)",
+      title: "Revisar objetivos",
       branch: "Objetivos",
       branchBadge: "text-bg-warning",
       duration: 2,
@@ -154,7 +154,7 @@ export const activitiesCatalog = {
     {
       id: "n-rec-emotion-check",
       phase: "night",
-      title: "Identifica tu emoción (2 min)",
+      title: "Identifica tu emoción",
       branch: "Emoción",
       branchBadge: "text-bg-light border",
       duration: 2,
