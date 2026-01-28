@@ -147,7 +147,7 @@ def login():
 #--------------------------
 # PASSWORD RESET
 #--------------------------
-@api.route('/password/reset', methods=['POST'])
+@api.route('/auth/forgot-password', methods=['POST'])
 def reset_password():
     email = request.json.get('email',None)
 
@@ -163,20 +163,21 @@ def reset_password():
     identity=str(user.id),
     expires_delta=timedelta(hours=1)
 )
-
-    app_url = "www.google.com" + "/reset?token=" + token
     
-    send_password_reset(email, app_url)
+    url_reset = os.getenv('VITE_FRONTEND_URL') + "auth/reset?token=" + token
+    
+    send_password_reset(email, url_reset)
 
     return jsonify({"msg": "Si el email existe, recibirás un enlace para restablecer tu contraseña."}), 200
 
-@api.route('/change/password', methods=['POST'])
+@api.route('/auth/reset-password', methods=['POST'])
 @jwt_required()
 def change_password():
 
     password =request.json.get('password',None)
 
     user_id = get_jwt_identity()
+    
     try:
         user_id_int = int(user_id)
     except Exception:

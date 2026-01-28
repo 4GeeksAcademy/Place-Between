@@ -122,7 +122,10 @@ export async function resetPassword({ token, password }) {
   // TODO: reemplazar con endpoint real del backend
   const res = await fetch(`${API_BASE}/api/auth/reset-password`, {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
+    headers: { "Content-Type": "application/json",
+       'Authorization': 'Bearer ' + token
+    },
+    
     body: JSON.stringify({ token, password }),
   });
 
