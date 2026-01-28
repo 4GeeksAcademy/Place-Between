@@ -7,6 +7,8 @@ import { AppLayout } from "./pages/AppLayout";
 import { Home } from "./pages/Home";
 import { Login } from "./pages/Login";
 import { Signup } from "./pages/Signup";
+import { ForgotPassword } from "./pages/ForgotPassword";
+import { ResetPassword } from "./pages/ResetPassword";
 
 import { Today } from "./pages/Today";
 import { Activities } from "./pages/Activities";
@@ -21,6 +23,8 @@ export const router = createBrowserRouter([
       { path: "/", element: <Home /> },
       { path: "/auth/login", element: <Login /> },
       { path: "/auth/signup", element: <Signup /> },
+      { path: "/auth/forgot", element: <ForgotPassword /> },
+      { path: "/auth/reset", element: <ResetPassword /> },
     ],
   },
 
