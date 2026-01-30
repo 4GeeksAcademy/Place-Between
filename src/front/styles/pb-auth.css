@@ -1,0 +1,71 @@
+/* Place Between — Auth (Login/Signup/Forgot/Reset) */
+
+.pb-auth-card {
+  border-radius: 24px;
+  overflow: hidden;
+  border: 1px solid rgba(0, 0, 0, 0.08);
+  background: #fff;
+}
+
+.pb-auth-left {
+  position: relative;
+  min-height: 560px;
+  background: #f8f9fa;
+}
+
+.pb-auth-left-bg {
+  position: absolute;
+  inset: 0;
+  background-size: cover;
+  background-position: center;
+  opacity: 0.9;
+}
+
+.pb-auth-left-inner {
+  position: relative;
+  z-index: 2;
+  padding: 32px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  width: 100%;
+  background: linear-gradient(
+    135deg,
+    rgba(255, 245, 235, 0.92),
+    rgba(245, 250, 255, 0.92)
+  );
+}
+
+.pb-logo-mark {
+  width: 18px;
+  height: 18px;
+  display: inline-block;
+  background: #0d6efd;
+  clip-path: polygon(50% 0%, 100% 35%, 50% 100%, 0% 35%);
+  opacity: 0.9;
+}
+
+.pb-auth-switch {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+  padding: 6px;
+  background: #f1f3f5;
+  border-radius: 14px;
+}
+
+.pb-auth-tab {
+  text-decoration: none;
+  text-align: center;
+  padding: 10px 12px;
+  border-radius: 12px;
+  font-weight: 600;
+  color: #6c757d;
+  background: transparent;
+}
+
+.pb-auth-tab.active {
+  background: #fff;
+  color: #0d6efd;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.08);
+}

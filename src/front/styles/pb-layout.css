@@ -1,0 +1,5 @@
+/* Place Between — Layout (app shell, navbar, shared surfaces) */
+
+.pb-navbar {
+  backdrop-filter: blur(8px);
+}

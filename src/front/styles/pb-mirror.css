@@ -1,0 +1,1736 @@
+/* ===== Mirror - Between Places aesthetic ===== */
+
+.pb-card-soft {
+  border-radius: 22px;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.pb-mirror-hero {
+  background:
+    radial-gradient(
+      1200px 500px at 20% 0%,
+      rgba(180, 120, 255, 0.14),
+      transparent 60%
+    ),
+    rgba(255, 255, 255, 0.03);
+}
+
+.pb-eyebrow {
+  font-size: 0.75rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: rgba(255, 255, 255, 0.55);
+  margin-bottom: 6px;
+}
+
+.pb-hero-title {
+  font-size: 1.6rem;
+  font-weight: 800;
+  line-height: 1.15;
+  margin-bottom: 10px;
+}
+
+.pb-hero-sub {
+  font-weight: 700;
+  color: rgba(255, 255, 255, 0.7);
+}
+
+.pb-hero-text {
+  color: rgba(255, 255, 255, 0.7);
+  max-width: 520px;
+}
+
+/* Orb */
+.pb-orb {
+  width: 180px;
+  height: 180px;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  position: relative;
+  overflow: hidden;
+  flex: 0 0 auto;
+  /* color dinámico por clase emoción + intensidad (ver variables abajo) */
+  background: radial-gradient(
+    circle at 30% 30%,
+    var(--pb-glow),
+    var(--pb-orb) 60%,
+    rgba(0, 0, 0, 0.2) 100%
+  );
+  box-shadow: 0 0 40px color-mix(in oklab, var(--pb-glow) 55%, transparent);
+}
+
+.pb-orb-stars {
+  position: absolute;
+  inset: 0;
+  opacity: 0.28;
+  background: radial-gradient(#fff 1px, transparent 1px);
+}
+
+.pb-orb-stars-a {
+  background-size: 18px 18px;
+}
+.pb-orb-stars-b {
+  background-size: 28px 28px;
+  opacity: 0.16;
+}
+
+/* Emotion badge */
+.pb-badge-emotion {
+  padding: 0.4em 0.6em;
+  color: #fff;
+  background: hsl(var(--pb-hue) var(--pb-sat) var(--pb-light));
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  box-shadow: 0 0 18px
+    color-mix(in oklab, hsl(var(--pb-hue) var(--pb-sat) 55%) 25%, transparent);
+}
+
+/* Details */
+.pb-details-summary {
+  cursor: pointer;
+}
+
+/* Progress */
+.pb-mirror-progress {
+  height: 10px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.08);
+  overflow: hidden;
+}
+
+.pb-mirror-progress-bar {
+  height: 100%;
+  border-radius: 999px;
+  background: rgba(168, 92, 255, 0.55);
+}
+
+/* Tiles (Mood Frequency) */
+.pb-tiles {
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.pb-tile {
+  height: 64px;
+  border-radius: 16px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.18);
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  padding: 10px 12px;
+  background: rgba(168, 92, 255, 0.1);
+}
+
+.pb-tile-title {
+  font-size: 0.85rem;
+  font-weight: 700;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.pb-tile-sub {
+  font-size: 0.8rem;
+  color: rgba(255, 255, 255, 0.65);
+}
+
+/* Buckets de intensidad por categoría */
+.pb-b-1 {
+  background: rgba(168, 92, 255, 0.08);
+}
+.pb-b-2 {
+  background: rgba(168, 92, 255, 0.14);
+}
+.pb-b-3 {
+  background: rgba(168, 92, 255, 0.22);
+}
+.pb-b-4 {
+  background: rgba(168, 92, 255, 0.3);
+}
+.pb-b-5 {
+  background: rgba(168, 92, 255, 0.38);
+}
+
+/* Trail */
+.pb-trail-wrap {
+  position: relative;
+  overflow-x: auto;
+  padding-bottom: 8px;
+}
+
+.pb-trail {
+  display: inline-flex;
+  align-items: center;
+  gap: 16px;
+  padding: 8px 4px;
+  min-width: 100%;
+}
+
+.pb-trail-connector {
+  width: 42px;
+  height: 3px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.18);
+}
+
+.pb-trail-node {
+  width: 14px;
+  height: 14px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.65);
+  box-shadow: 0 0 18px rgba(255, 255, 255, 0.25);
+  flex: 0 0 auto;
+}
+
+.pb-trail-destination {
+  width: 18px;
+  height: 18px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.95);
+  box-shadow: 0 0 22px rgba(255, 255, 255, 0.35);
+  margin-left: 8px;
+}
+
+/* Items del detalle */
+.pb-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 12px;
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.06);
+}
+
+.pb-item-stack {
+  display: block;
+}
+
+/* ===== Emoción/Intensidad -> variables CSS (sin inline) ===== */
+
+/* Hue por emoción */
+.pb-e-default {
+  --pb-hue: 210;
+}
+.pb-e-alegria {
+  --pb-hue: 48;
+}
+.pb-e-tristeza {
+  --pb-hue: 205;
+}
+.pb-e-ira {
+  --pb-hue: 2;
+}
+.pb-e-miedo {
+  --pb-hue: 130;
+} /* verde oscuro */
+
+/* Saturación/Luz por intensidad (1..10) */
+.pb-i-1 {
+  --pb-sat: 40%;
+  --pb-light: 55%;
+}
+.pb-i-2 {
+  --pb-sat: 46%;
+  --pb-light: 53%;
+}
+.pb-i-3 {
+  --pb-sat: 52%;
+  --pb-light: 51%;
+}
+.pb-i-4 {
+  --pb-sat: 58%;
+  --pb-light: 49%;
+}
+.pb-i-5 {
+  --pb-sat: 64%;
+  --pb-light: 47%;
+}
+.pb-i-6 {
+  --pb-sat: 70%;
+  --pb-light: 45%;
+}
+.pb-i-7 {
+  --pb-sat: 76%;
+  --pb-light: 43%;
+}
+.pb-i-8 {
+  --pb-sat: 82%;
+  --pb-light: 41%;
+}
+.pb-i-9 {
+  --pb-sat: 86%;
+  --pb-light: 38%;
+}
+.pb-i-10 {
+  --pb-sat: 90%;
+  --pb-light: 35%;
+}
+
+/* Variables derivadas para orb */
+.pb-e-default,
+.pb-e-alegria,
+.pb-e-tristeza,
+.pb-e-ira,
+.pb-e-miedo {
+  --pb-orb: hsl(var(--pb-hue) var(--pb-sat) var(--pb-light));
+  --pb-glow: hsl(var(--pb-hue) var(--pb-sat) 60%);
+}
+
+/* ===== Mirror shell background (day/night) ===== */
+
+.pb-mirror-shell {
+  min-height: calc(100vh - 64px);
+  padding-top: 10px;
+  padding-bottom: 40px;
+}
+
+.pb-mirror-day {
+  background:
+    radial-gradient(
+      1200px 650px at 20% 10%,
+      rgba(120, 170, 255, 0.16),
+      transparent 60%
+    ),
+    radial-gradient(
+      900px 520px at 85% 15%,
+      rgba(255, 190, 130, 0.14),
+      transparent 55%
+    ),
+    radial-gradient(
+      900px 520px at 50% 90%,
+      rgba(168, 92, 255, 0.1),
+      transparent 60%
+    ),
+    #f6f7fb;
+}
+
+.pb-mirror-night {
+  background:
+    radial-gradient(
+      1200px 650px at 18% 10%,
+      rgba(91, 107, 255, 0.2),
+      transparent 60%
+    ),
+    radial-gradient(
+      900px 520px at 85% 15%,
+      rgba(255, 153, 85, 0.1),
+      transparent 55%
+    ),
+    radial-gradient(
+      900px 520px at 55% 85%,
+      rgba(168, 92, 255, 0.1),
+      transparent 60%
+    ),
+    #0b1020;
+}
+
+/* ===== Mirror: text contrast (day/night) ===== */
+
+/* NIGHT */
+.pb-mirror-night {
+  color: rgba(245, 247, 255, 0.92);
+}
+
+.pb-mirror-night .card,
+.pb-mirror-night .card-body {
+  color: rgba(245, 247, 255, 0.92);
+}
+
+.pb-mirror-night .text-secondary {
+  color: rgba(227, 232, 255, 0.72) !important;
+}
+
+.pb-mirror-night h1,
+.pb-mirror-night h2,
+.pb-mirror-night h3,
+.pb-mirror-night .h1,
+.pb-mirror-night .h2,
+.pb-mirror-night .h3 {
+  color: rgba(250, 251, 255, 0.97);
+}
+
+.pb-mirror-night .small {
+  color: rgba(227, 232, 255, 0.76);
+}
+
+/* DAY */
+.pb-mirror-day {
+  color: rgba(18, 20, 28, 0.92);
+}
+
+.pb-mirror-day .card,
+.pb-mirror-day .card-body {
+  color: rgba(18, 20, 28, 0.92);
+}
+
+.pb-mirror-day .text-secondary {
+  color: rgba(58, 64, 86, 0.78) !important;
+}
+
+.pb-mirror-day h1,
+.pb-mirror-day h2,
+.pb-mirror-day h3,
+.pb-mirror-day .h1,
+.pb-mirror-day .h2,
+.pb-mirror-day .h3 {
+  color: rgba(12, 14, 20, 0.98);
+}
+
+.pb-mirror-day .small {
+  color: rgba(58, 64, 86, 0.82);
+}
+
+/* DAY: cards un poco más sólidas para legibilidad */
+.pb-mirror-day .pb-card-soft {
+  background: rgba(255, 255, 255, 0.96);
+  border: 1px solid rgba(20, 24, 36, 0.12);
+  box-shadow: 0 14px 34px rgba(15, 23, 42, 0.10);
+}
+
+/* “seleccionable”: hover leve en day */
+.pb-mirror-day .pb-card-soft:hover {
+  border-color: rgba(13, 110, 253, 0.22);
+  box-shadow: 0 18px 44px rgba(15, 23, 42, 0.14);
+}
+
+/* ===== Category colors (activity categories) ===== */
+.pb-cat-emocion {
+  --pb-cat: 48 90% 55%;
+} /* dorado */
+.pb-cat-espejo {
+  --pb-cat: 285 85% 60%;
+} /* violeta */
+.pb-cat-aprendizaje {
+  --pb-cat: 205 90% 60%;
+} /* azul */
+.pb-cat-fisico {
+  --pb-cat: 150 75% 45%;
+} /* verde */
+.pb-cat-regulacion {
+  --pb-cat: 320 75% 60%;
+} /* magenta */
+
+.pb-cat-default {
+  --pb-cat: 210 20% 75%;
+} /* gris claro */
+
+/* Tiles: borde + glow por categoría */
+.pb-tile {
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+.pb-tile.pb-cat-emocion,
+.pb-tile.pb-cat-espejo,
+.pb-tile.pb-cat-aprendizaje,
+.pb-tile.pb-cat-fisico,
+.pb-tile.pb-cat-regulacion,
+.pb-tile.pb-cat-default {
+  border-color: color-mix(
+    in oklab,
+    hsl(var(--pb-cat)) 45%,
+    rgba(255, 255, 255, 0.1)
+  );
+  box-shadow: 0 0 22px color-mix(in oklab, hsl(var(--pb-cat)) 22%, transparent);
+}
+
+/* Sendero: nodo ilumina según categoría */
+.pb-trail-node {
+  background: rgba(255, 255, 255, 0.55);
+}
+.pb-trail-node.pb-cat-emocion,
+.pb-trail-node.pb-cat-espejo,
+.pb-trail-node.pb-cat-aprendizaje,
+.pb-trail-node.pb-cat-fisico,
+.pb-trail-node.pb-cat-regulacion,
+.pb-trail-node.pb-cat-default {
+  background: hsl(var(--pb-cat));
+  box-shadow: 0 0 18px color-mix(in oklab, hsl(var(--pb-cat)) 55%, transparent);
+}
+
+/* Conector un poco más visible */
+.pb-trail-connector {
+  background: rgba(255, 255, 255, 0.22);
+}
+
+/* ===== Mirror DAY: fix whites that were tuned for NIGHT ===== */
+
+/* HERO text (eyebrow/sub/text) in DAY */
+.pb-mirror-day .pb-eyebrow {
+  color: rgba(18, 20, 28, 0.55);
+}
+
+.pb-mirror-day .pb-hero-sub {
+  color: rgba(18, 20, 28, 0.7);
+}
+
+.pb-mirror-day .pb-hero-text {
+  color: rgba(18, 20, 28, 0.7);
+}
+
+/* Si estás usando el background "pb-mirror-hero" también en DAY, hazlo más claro */
+.pb-mirror-day .pb-mirror-hero {
+  background:
+    radial-gradient(
+      1200px 500px at 20% 0%,
+      rgba(120, 170, 255, 0.14),
+      transparent 60%
+    ),
+    rgba(255, 255, 255, 0.55);
+  border: 1px solid rgba(20, 24, 36, 0.08);
+}
+
+/* TILES: en DAY los textos secundarios no pueden ser blancos */
+.pb-mirror-day .pb-tile-title {
+  color: rgba(12, 14, 20, 0.92);
+}
+
+.pb-mirror-day .pb-tile-sub {
+  color: rgba(58, 64, 86, 0.85);
+}
+
+/* TILES: ajusta base para DAY (ahora eran muy "night") */
+.pb-mirror-day .pb-tile {
+  background: rgba(255, 255, 255, 0.72);
+  border-color: rgba(20, 24, 36, 0.1);
+  box-shadow: 0 12px 28px rgba(0, 0, 0, 0.08);
+}
+
+/* Si usas buckets (pb-b-*) que estaban pensados para night, en DAY los hacemos legibles */
+.pb-mirror-day .pb-b-1 {
+  background: rgba(255, 255, 255, 0.62);
+}
+.pb-mirror-day .pb-b-2 {
+  background: rgba(255, 255, 255, 0.66);
+}
+.pb-mirror-day .pb-b-3 {
+  background: rgba(255, 255, 255, 0.7);
+}
+.pb-mirror-day .pb-b-4 {
+  background: rgba(255, 255, 255, 0.74);
+}
+.pb-mirror-day .pb-b-5 {
+  background: rgba(255, 255, 255, 0.78);
+}
+
+/* Sendero: conectores visibles en DAY (en night funcionan, en day se pierden) */
+.pb-mirror-day .pb-trail-connector {
+  background: rgba(20, 24, 36, 0.22);
+}
+
+/* Sendero: el nodo "default" debe verse, pero los de categoría ya van coloreados */
+.pb-mirror-day .pb-trail-node {
+  background: rgba(20, 24, 36, 0.35);
+  box-shadow: 0 0 12px rgba(0, 0, 0, 0.1);
+}
+
+/* Sendero: destino final en DAY (para que no sea un punto blanco sin contexto) */
+.pb-mirror-day .pb-trail-destination {
+  background: rgba(12, 14, 20, 0.25);
+  box-shadow: 0 0 14px rgba(0, 0, 0, 0.1);
+  border: 1px solid rgba(20, 24, 36, 0.12);
+}
+
+/* ===== Restore category colors in DAY (tiles + trail) ===== */
+
+/* TILES: en DAY, las categorías deben teñir el fondo */
+.pb-mirror-day .pb-tile.pb-cat-emocion,
+.pb-mirror-day .pb-tile.pb-cat-espejo,
+.pb-mirror-day .pb-tile.pb-cat-aprendizaje,
+.pb-mirror-day .pb-tile.pb-cat-fisico,
+.pb-mirror-day .pb-tile.pb-cat-regulacion,
+.pb-mirror-day .pb-tile.pb-cat-default {
+  background: color-mix(
+    in oklab,
+    hsl(var(--pb-cat)) 18%,
+    rgba(255, 255, 255, 0.88)
+  );
+  border-color: color-mix(
+    in oklab,
+    hsl(var(--pb-cat)) 45%,
+    rgba(20, 24, 36, 0.12)
+  );
+  box-shadow:
+    0 14px 30px rgba(0, 0, 0, 0.08),
+    0 0 18px color-mix(in oklab, hsl(var(--pb-cat)) 20%, transparent);
+}
+
+/* TILES: texto siempre legible sobre fondo claro */
+.pb-mirror-day .pb-tile.pb-cat-emocion .pb-tile-title,
+.pb-mirror-day .pb-tile.pb-cat-espejo .pb-tile-title,
+.pb-mirror-day .pb-tile.pb-cat-aprendizaje .pb-tile-title,
+.pb-mirror-day .pb-tile.pb-cat-fisico .pb-tile-title,
+.pb-mirror-day .pb-tile.pb-cat-regulacion .pb-tile-title,
+.pb-mirror-day .pb-tile.pb-cat-default .pb-tile-title {
+  color: rgba(12, 14, 20, 0.95);
+}
+
+.pb-mirror-day .pb-tile.pb-cat-emocion .pb-tile-sub,
+.pb-mirror-day .pb-tile.pb-cat-espejo .pb-tile-sub,
+.pb-mirror-day .pb-tile.pb-cat-aprendizaje .pb-tile-sub,
+.pb-mirror-day .pb-tile.pb-cat-fisico .pb-tile-sub,
+.pb-mirror-day .pb-tile.pb-cat-regulacion .pb-tile-sub,
+.pb-mirror-day .pb-tile.pb-cat-default .pb-tile-sub {
+  color: rgba(58, 64, 86, 0.88);
+}
+
+/* SENDERO: en DAY, los nodos de categoría deben ganar a la regla base */
+.pb-mirror-day .pb-trail-node.pb-cat-emocion,
+.pb-mirror-day .pb-trail-node.pb-cat-espejo,
+.pb-mirror-day .pb-trail-node.pb-cat-aprendizaje,
+.pb-mirror-day .pb-trail-node.pb-cat-fisico,
+.pb-mirror-day .pb-trail-node.pb-cat-regulacion,
+.pb-mirror-day .pb-trail-node.pb-cat-default {
+  background: hsl(var(--pb-cat));
+  box-shadow: 0 0 14px color-mix(in oklab, hsl(var(--pb-cat)) 55%, transparent);
+}
+
+/* SENDERO: conectores un poco más visibles en DAY */
+.pb-mirror-day .pb-trail-connector {
+  background: rgba(20, 24, 36, 0.22);
+}
+
+/* ===== Hero aura: emotion + intensity ===== */
+
+/* Aura base: usa --pb-aura (RGB) y --pb-auraPow (0..1) */
+.pb-mirror-hero {
+  position: relative;
+  overflow: hidden;
+}
+
+.pb-mirror-hero::before {
+  content: "";
+  position: absolute;
+  inset: -40px;
+  pointer-events: none;
+  background:
+    radial-gradient(
+      800px 420px at 22% 30%,
+      rgba(
+        var(--pb-aura, 120, 170, 255),
+        calc(0.1 + 0.22 * var(--pb-auraPow, 0.5))
+      ),
+      transparent 62%
+    ),
+    radial-gradient(
+      650px 380px at 62% 75%,
+      rgba(
+        var(--pb-aura, 120, 170, 255),
+        calc(0.06 + 0.16 * var(--pb-auraPow, 0.5))
+      ),
+      transparent 60%
+    );
+  filter: blur(2px);
+  opacity: 1;
+}
+
+/* Asegura que el contenido vaya por encima del aura */
+.pb-mirror-hero > .card-body {
+  position: relative;
+  z-index: 1;
+}
+
+/* Emoción -> color aura (RGB). Ajusta a tu gusto */
+.pb-e-alegria {
+  --pb-aura: 255, 196, 68;
+} /* dorado */
+.pb-e-tristeza {
+  --pb-aura: 90, 160, 255;
+} /* azul */
+.pb-e-ira {
+  --pb-aura: 255, 92, 92;
+} /* rojo */
+.pb-e-miedo {
+  --pb-aura: 18, 84, 46;
+} /* verde oscuro */
+
+/* Intensidad -> potencia (1..10) */
+.pb-i-1 {
+  --pb-auraPow: 0.1;
+}
+.pb-i-2 {
+  --pb-auraPow: 0.18;
+}
+.pb-i-3 {
+  --pb-auraPow: 0.26;
+}
+.pb-i-4 {
+  --pb-auraPow: 0.34;
+}
+.pb-i-5 {
+  --pb-auraPow: 0.42;
+}
+.pb-i-6 {
+  --pb-auraPow: 0.5;
+}
+.pb-i-7 {
+  --pb-auraPow: 0.58;
+}
+.pb-i-8 {
+  --pb-auraPow: 0.68;
+}
+.pb-i-9 {
+  --pb-auraPow: 0.78;
+}
+.pb-i-10 {
+  --pb-auraPow: 0.9;
+}
+
+/* ===== Modal panel (runner container) ===== */
+.pb-modal-panel {
+  background: rgba(0, 0, 0, 0.03);
+  border-color: rgba(0, 0, 0, 0.08) !important;
+}
+
+/* Night: el panel debe ser oscuro para que el texto claro sea legible */
+.pb-today-night .pb-modal-panel {
+  background: rgba(255, 255, 255, 0.06);
+  border-color: rgba(255, 255, 255, 0.12) !important;
+}
+
+/* Night: inputs legibles dentro del modal */
+.pb-today-night .modal-content .form-control,
+.pb-today-night .modal-content .form-select,
+.pb-today-night .modal-content textarea {
+  background: rgba(255, 255, 255, 0.06) !important;
+  border-color: rgba(255, 255, 255, 0.14) !important;
+  color: #f3f5ff !important;
+}
+
+.pb-today-night .modal-content .form-control::placeholder,
+.pb-today-night .modal-content textarea::placeholder {
+  color: rgba(227, 232, 255, 0.55) !important;
+}
+
+.pb-today-night .modal-content .form-label,
+.pb-today-night .modal-content .form-text,
+.pb-today-night .modal-content .small,
+.pb-today-night .modal-content .text-muted {
+  color: rgba(227, 232, 255, 0.75) !important;
+}
+
+/* ===== Runner micro-transitions ===== */
+.pb-fade-in {
+  animation: pbFadeIn 500ms ease-out;
+}
+@keyframes pbFadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(2px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* ===== Night modal: select dropdown options legibles ===== */
+.pb-today-night .modal-content .form-select {
+  background: rgba(255, 255, 255, 0.06) !important;
+  border-color: rgba(255, 255, 255, 0.14) !important;
+  color: #f3f5ff !important;
+}
+
+/* Importante: muchos navegadores NO heredan color en <option> */
+.pb-today-night .modal-content .form-select option {
+  background: #0f1630; /* mismo tono que modal */
+  color: #f3f5ff;
+}
+
+/* si el navegador pinta el option seleccionado diferente */
+.pb-today-night .modal-content .form-select option:checked {
+  background: rgba(13, 110, 253, 0.35);
+  color: #f3f5ff;
+}
+
+
+/* Night: KPI sigue legible */
+.pb-mirror-night .pb-kpi {
+  background: rgba(255, 255, 255, 0.06);
+  border-color: rgba(255, 255, 255, 0.12);
+}
+
+/* FIX: tiles legibles en NIGHT */
+.pb-mirror-night .pb-tile-title,
+.pb-mirror-night .pb-tile-sub {
+  color: rgba(245, 247, 255, 0.92) !important;
+}
+.pb-mirror-night .pb-tile-sub {
+  color: rgba(227, 232, 255, 0.76) !important;
+}
+
+
+/* Emotion tiles clickable */
+.pb-tile-btn {
+  border: 0;
+  text-align: left;
+  cursor: pointer;
+}
+
+.pb-tile-btn.pb-tile-active {
+  outline: 2px solid rgba(13, 110, 253, 0.55);
+  outline-offset: 2px;
+}
+
+/* Emotions: tiles con color por emoción (usa --pb-hue/--pb-sat/--pb-light) */
+.pb-tile.pb-e-default,
+.pb-tile.pb-e-alegria,
+.pb-tile.pb-e-tristeza,
+.pb-tile.pb-e-ira,
+.pb-tile.pb-e-miedo {
+  background: color-mix(
+    in oklab,
+    hsl(var(--pb-hue) var(--pb-sat) var(--pb-light)) 18%,
+    rgba(255, 255, 255, 0.04)
+  );
+  border-color: color-mix(
+    in oklab,
+    hsl(var(--pb-hue) var(--pb-sat) 55%) 45%,
+    rgba(255, 255, 255, 0.1)
+  );
+  box-shadow: 0 0 22px
+    color-mix(in oklab, hsl(var(--pb-hue) var(--pb-sat) 55%) 22%, transparent);
+}
+
+
+/* -----------------------------
+  MIRROR — tiles coloreados por variables
+------------------------------ */
+
+.pb-tile,
+.pb-tile.pb-tile-btn {
+  border: 1px solid rgba(255,255,255,0.12);
+  background: color-mix(in oklab, hsl(var(--pb-hue) var(--pb-sat) var(--pb-light)) 14%, rgba(255,255,255,0.03));
+  box-shadow: 0 0 22px color-mix(in oklab, hsl(var(--pb-hue) var(--pb-sat) 55%) 20%, transparent);
+  text-align: left;
+}
+
+.pb-tile.pb-tile-btn {
+  cursor: pointer;
+  width: 100%;
+}
+
+.pb-tile-title {
+  color: rgba(245,247,255,0.92);
+}
+.pb-tile-sub {
+  color: rgba(227,232,255,0.76);
+}
+
+/* En día */
+.pb-mirror-day .pb-tile-title { color: rgba(10,16,40,0.9); }
+.pb-mirror-day .pb-tile-sub { color: rgba(10,16,40,0.65); }
+
+
+/* =========================
+   Mirror — Range visuals
+========================= */
+
+.pb-mirror-container--wide {
+  max-width: 1180px; /* wide pero sin estirar infinito */
+}
+
+.pb-kpi {
+  border-radius: 16px;
+  border: 1px solid rgba(255,255,255,0.08);
+  background: rgba(255,255,255,0.02);
+  padding: 14px;
+}
+
+.pb-metric-hint {
+  font-size: 12px;
+  color: rgba(255,255,255,0.65);
+}
+
+.pb-pill {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 8px;
+  border-radius: 999px;
+  border: 1px solid rgba(255,255,255,0.12);
+  background: rgba(255,255,255,0.03);
+  color: inherit;
+  padding: 8px 12px;
+  font-size: 12px;
+  line-height: 1;
+}
+
+.pb-pill:hover {
+  border-color: rgba(255,255,255,0.22);
+  background: rgba(255,255,255,0.05);
+}
+
+.pb-pill--active {
+  outline: 2px solid rgba(13,110,253,0.55);
+  border-color: rgba(13,110,253,0.55);
+}
+
+.pb-pill--wide {
+  justify-content: space-between;
+  width: 100%;
+}
+
+.pb-pill-label {
+  max-width: 180px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.pb-pill-sub {
+  opacity: 0.75;
+  font-variant-numeric: tabular-nums;
+}
+
+.pb-pills-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 10px;
+}
+
+/* -------- Line chart -------- */
+
+.pb-linechart-wrap {
+  border-radius: 18px;
+  border: 1px solid rgba(255,255,255,0.10);
+  background: rgba(0,0,0,0.12);
+  padding: 14px 14px 10px 14px;
+}
+
+.pb-linechart {
+  width: 100%;
+  height: 300px; /* llena el espacio y evita “vacío” */
+  display: block;
+}
+
+.pb-linechart-axis {
+  stroke: rgba(255,255,255,0.18);
+  stroke-width: 1;
+}
+
+.pb-linechart-grid {
+  stroke: rgba(255,255,255,0.08);
+  stroke-width: 1;
+}
+
+.pb-linechart-path {
+  fill: none;
+  stroke: rgba(13,110,253,0.85);
+  stroke-width: 2.5;
+}
+
+.pb-linechart-dot {
+  fill: rgba(13,110,253,0.95);
+  stroke: rgba(255,255,255,0.4);
+  stroke-width: 1;
+}
+
+.pb-linechart-label {
+  fill: rgba(255,255,255,0.65);
+  font-size: 11px;
+}
+
+.pb-linechart-value {
+  fill: rgba(255,255,255,0.85);
+  font-size: 11px;
+  font-variant-numeric: tabular-nums;
+}
+
+/* -------- Categories stackbar -------- */
+
+.pb-stackbar {
+  height: 14px;
+  border-radius: 999px;
+  overflow: hidden;
+  display: flex;
+  border: 1px solid rgba(255,255,255,0.10);
+  background: rgba(255,255,255,0.03);
+}
+
+.pb-stackbar-seg {
+  height: 100%;
+  opacity: 0.9;
+}
+
+/* -------- Emotions layout -------- */
+
+.pb-emotions-layout {
+  display: grid;
+  grid-template-columns: 1fr 230px;
+  gap: 14px;
+  align-items: start;
+}
+
+@media (max-width: 992px) {
+  .pb-emotions-layout {
+    grid-template-columns: 1fr;
+  }
+}
+
+.pb-emotion-tiles {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  gap: 10px;
+}
+
+.pb-emotion-tile {
+  text-align: left;
+  border-radius: 16px;
+  border: 1px solid rgba(255,255,255,0.10);
+  background: rgba(255,255,255,0.03);
+  padding: 12px;
+  color: inherit;
+}
+
+.pb-emotion-tile:hover {
+  border-color: rgba(255,255,255,0.22);
+}
+
+.pb-emotion-tile--active {
+  outline: 2px solid rgba(13,110,253,0.55);
+}
+
+.pb-emotion-name {
+  font-weight: 700;
+  margin-bottom: 4px;
+}
+
+.pb-emotion-sub {
+  font-size: 12px;
+  opacity: 0.75;
+  font-variant-numeric: tabular-nums;
+}
+
+.pb-pie-wrap {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+}
+
+.pb-pie {
+  width: 210px;
+  height: 210px; /* más grande */
+  display: block;
+  filter: drop-shadow(0 10px 26px rgba(0,0,0,0.35));
+}
+
+.pb-pie-slice {
+  cursor: pointer;
+  opacity: 0.95;
+}
+
+.pb-pie-slice:hover {
+  opacity: 1;
+  filter: brightness(1.08);
+}
+
+.pb-pie-slice--active {
+  filter: brightness(1.1);
+  opacity: 1;
+}
+
+.pb-pie-center {
+  fill: rgba(255,255,255,0.35);
+}
+
+.pb-pie-legend {
+  width: 100%;
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 6px;
+}
+
+.pb-legend-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12px;
+  opacity: 0.85;
+}
+
+.pb-legend-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 999px;
+  display: inline-block;
+}
+
+.pb-legend-label {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* -------- Drilldown -------- */
+
+.pb-drill {
+  max-height: 320px;
+  overflow: auto;
+  border-radius: 14px;
+  border: 1px solid rgba(255,255,255,0.10);
+  background: rgba(255,255,255,0.03);
+}
+
+.pb-drill-item {
+  display: grid;
+  grid-template-columns: 120px 1fr;
+  gap: 12px;
+  padding: 12px;
+  border-bottom: 1px solid rgba(255,255,255,0.06);
+}
+
+.pb-drill-item:last-child {
+  border-bottom: none;
+}
+
+.pb-drill-date {
+  font-weight: 700;
+  opacity: 0.9;
+}
+
+.pb-drill-note {
+  margin-top: 6px;
+  opacity: 0.9;
+}
+
+.pb-chip {
+  display: inline-flex;
+  align-items: center;
+  border-radius: 999px;
+  padding: 2px 10px;
+  background: rgba(255,255,255,0.08);
+  border: 1px solid rgba(255,255,255,0.10);
+  font-size: 12px;
+  font-weight: 700;
+}
+
+/* =========================
+   Category color classes (si no existen ya)
+========================= */
+
+.pb-cat-objetivos { --pb-hue: 32; } /* opcional */
+
+
+/* =========================
+   MIRROR: VISUAL LAYER (B)
+   - Emotion pie gradient + active glow
+   - Line chart polish
+   - Category horizontal bars
+========================= */
+
+:root{
+  --pb-blue: #2f86ff;
+
+  --pb-emocion: #7a5cff;
+  --pb-espejo: #9b5cff;
+  --pb-aprendizaje: #4da3ff;
+  --pb-fisico: #3bd180;
+  --pb-regulacion: #b06bff;
+  --pb-objetivos: #ffb84d;
+
+  --pb-alegria: #ffd35a;
+  --pb-miedo: #5ee27a;
+  --pb-tristeza: #66b3ff;
+  --pb-ira: #ff5f6a;
+  --pb-em-default: #8aa0b8;
+}
+
+/* Line chart */
+.pb-lineChartWrap { width: 100%; }
+.pb-lineChart { width: 100%; height: auto; display: block; }
+.pb-gridLine { stroke: rgba(255,255,255,0.08); stroke-width: 1; }
+.pb-gridText { fill: rgba(255,255,255,0.50); font-size: 12px; }
+.pb-xLabel { fill: rgba(255,255,255,0.70); font-size: 12px; cursor: pointer; }
+.pb-rangeEdge { fill: rgba(255,255,255,0.45); font-size: 12px; }
+.pb-linePath { filter: drop-shadow(0 0 12px rgba(47,134,255,0.12)); }
+.pb-lineGlow { opacity: 0.9; }
+.pb-dot { cursor: pointer; stroke: rgba(255,255,255,0.35); stroke-width: 2; }
+.pb-dotLabel { fill: rgba(255,255,255,0.8); font-size: 12px; font-weight: 700; }
+
+/* Emotion grid */
+.pb-emotionsGrid {
+  display: grid;
+  grid-template-columns: 1fr 280px;
+  gap: 14px;
+}
+@media (max-width: 991px){
+  .pb-emotionsGrid { grid-template-columns: 1fr; }
+}
+
+.pb-emRow{
+  width: 100%;
+  text-align: left;
+  border: 1px solid rgba(255,255,255,0.08);
+  background: rgba(255,255,255,0.04);
+  border-radius: 14px;
+  padding: 10px 12px;
+  color: rgba(255,255,255,0.92);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+.pb-emRow:hover{ border-color: rgba(255,255,255,0.14); }
+.pb-emRow.is-active{
+  border-color: rgba(47,134,255,0.55);
+  box-shadow: 0 0 0 2px rgba(47,134,255,0.18), 0 0 20px rgba(47,134,255,0.18);
+}
+
+.pb-emName{ font-weight: 700; }
+.pb-emMeta{
+  display: flex;
+  gap: 10px;
+  font-size: 12px;
+  color: rgba(255,255,255,0.68);
+}
+
+/* Emotion pie */
+.pb-emPieWrap{
+  width: 280px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+}
+.pb-emPie{ max-width: 100%; height: auto; }
+.pb-emPieHint{ color: rgba(255,255,255,0.45); font-size: 12px; }
+.pb-emSeg{
+  cursor: pointer;
+  transition: filter 160ms ease, opacity 160ms ease, stroke-width 160ms ease;
+}
+.pb-emSeg.is-active{
+  opacity: 1;
+}
+
+/* Category horizontal bars */
+.pb-catBars{
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.pb-catBarRow{
+  width: 100%;
+  text-align: left;
+  border: 1px solid rgba(255,255,255,0.08);
+  background: rgba(255,255,255,0.04);
+  border-radius: 14px;
+  padding: 10px 12px;
+  color: rgba(255,255,255,0.92);
+}
+.pb-catBarRow:hover{ border-color: rgba(255,255,255,0.14); }
+.pb-catBarRow.is-active{
+  border-color: rgba(47,134,255,0.55);
+  box-shadow: 0 0 0 2px rgba(47,134,255,0.18), 0 0 20px rgba(47,134,255,0.18);
+}
+.pb-catBarTop{
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 10px;
+  margin-bottom: 8px;
+}
+.pb-catBarName{ font-weight: 700; }
+.pb-catBarPts{ color: rgba(255,255,255,0.70); font-size: 12px; }
+
+.pb-catBarTrack{
+  width: 100%;
+  height: 10px;
+  border-radius: 999px;
+  background: rgba(255,255,255,0.08);
+  overflow: hidden;
+}
+.pb-catBarFill{
+  height: 100%;
+  border-radius: 999px;
+  background: var(--pb-blue);
+}
+
+/* Map classes -> bar color */
+.pb-cat-emocion .pb-catBarFill{ background: var(--pb-emocion); }
+.pb-cat-espejo .pb-catBarFill{ background: var(--pb-espejo); }
+.pb-cat-aprendizaje .pb-catBarFill{ background: var(--pb-aprendizaje); }
+.pb-cat-fisico .pb-catBarFill{ background: var(--pb-fisico); }
+.pb-cat-regulacion .pb-catBarFill{ background: var(--pb-regulacion); }
+.pb-cat-objetivos .pb-catBarFill{ background: var(--pb-objetivos); }
+
+/* Technical day drilldown */
+.pb-dayRow{
+  border: 1px solid rgba(255,255,255,0.08);
+  border-radius: 14px;
+  overflow: hidden;
+  background: rgba(255,255,255,0.03);
+}
+.pb-dayRowBtn{
+  width: 100%;
+  background: transparent;
+  border: 0;
+  color: inherit;
+  padding: 12px 14px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  text-align: left;
+}
+.pb-dayRowBtn:hover{ background: rgba(255,255,255,0.03); }
+.pb-dayRowPanel{
+  border-top: 1px solid rgba(255,255,255,0.08);
+  padding: 12px 14px;
+  background: rgba(0,0,0,0.14);
+}
+
+.pb-miniTitle{
+  font-weight: 700;
+  margin-bottom: 8px;
+}
+.pb-miniGrid{
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 8px;
+}
+.pb-miniChip{
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 8px 10px;
+  border-radius: 12px;
+  background: rgba(255,255,255,0.04);
+  border: 1px solid rgba(255,255,255,0.08);
+}
+.pb-miniChipName{ font-weight: 600; }
+.pb-miniChipVal{ color: rgba(255,255,255,0.72); font-size: 12px; }
+
+
+/* =========================
+   MIRROR — RANGE UI (add-on)
+   Pegar al final de index.css
+========================= */
+
+/* contenedor ancho sólo para 7/30 */
+.pb-mirror-container--wide {
+  max-width: 1120px;
+}
+
+/* pills métricas */
+.pb-metric-pills {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  justify-content: flex-end;
+}
+.pb-pill {
+  border: 1px solid rgba(255,255,255,.15);
+  background: rgba(255,255,255,.04);
+  color: inherit;
+  border-radius: 999px;
+  padding: 6px 10px;
+  font-size: 13px;
+  line-height: 1;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+.pb-pill:hover {
+  background: rgba(255,255,255,.06);
+}
+.pb-pill-active {
+  border-color: rgba(0,150,255,.55);
+  box-shadow: 0 0 0 2px rgba(0,150,255,.15) inset;
+}
+.pb-pill-num {
+  opacity: .85;
+  font-variant-numeric: tabular-nums;
+}
+
+/* line chart */
+/* =========================
+   Mirror — Line chart (recorrido)
+   ========================= */
+
+/* Base (pensado para NIGHT por defecto, pero con tamaños ya correctos) */
+.pb-linechart {
+  width: 100%;
+  height: 300px;
+  border-radius: 16px;
+  background: rgba(255,255,255,.03);
+  border: 1px solid rgba(255,255,255,.08);
+  overflow: hidden;
+}
+
+.pb-linechart svg {
+  width: 100%;
+  height: 100%;
+}
+
+.pb-linechart-grid {
+  stroke: rgba(255,255,255,.08);
+  stroke-width: 1;
+}
+
+.pb-linechart-axis {
+  stroke: rgba(255,255,255,.16);
+  stroke-width: 1;
+}
+
+.pb-linechart-path {
+  fill: none;
+  stroke: rgba(0,150,255,.9);
+  stroke-width: 3;
+}
+
+.pb-linechart-point {
+  fill: rgba(0,150,255,.95);
+  stroke: rgba(255,255,255,.65);
+  stroke-width: 2;
+  cursor: pointer;
+}
+
+/* 👇 FIX: tamaños coherentes (evita que el número se monte sobre el punto) */
+.pb-linechart-value {
+  fill: rgba(255,255,255,.92);
+  font-size: 13px;           /* antes 22px */
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+  paint-order: stroke;
+  stroke: rgba(0,0,0,.25);   /* mejora legibilidad sobre líneas */
+  stroke-width: 2px;
+}
+
+.pb-linechart-xlabel {
+  fill: rgba(255,255,255,.75);
+  font-size: 10px;          
+  font-weight: 700;
+}
+
+.pb-linechart-value.is-dense {
+  font-size: 12px;
+}
+
+/* =========================
+   DAY overrides (lo que te faltaba)
+   ========================= */
+
+.pb-mirror-day .pb-linechart {
+  background: rgba(255,255,255,.72);
+  border: 1px solid rgba(20,24,36,.10);
+}
+
+.pb-mirror-day .pb-linechart-grid {
+  stroke: rgba(20,24,36,.10);
+}
+
+.pb-mirror-day .pb-linechart-axis {
+  stroke: rgba(20,24,36,.18);
+}
+
+.pb-mirror-day .pb-linechart-path {
+  stroke: rgba(13,110,253,.85);
+}
+
+.pb-mirror-day .pb-linechart-point {
+  stroke: rgba(20,24,36,.25);
+}
+
+.pb-mirror-day .pb-linechart-value {
+  fill: rgba(20,24,36,.92);
+  stroke: rgba(255,255,255,.65);
+  stroke-width: 2px;
+}
+
+.pb-mirror-day .pb-linechart-xlabel {
+  fill: rgba(20,24,36,.72);
+}
+
+
+
+/* color del line chart por categoría (punto + línea) */
+.pb-metric-total .pb-linechart-path { stroke: rgba(0,150,255,.9); }
+.pb-metric-total .pb-linechart-point { fill: rgba(0,150,255,.95); }
+
+.pb-cat-emocion { --pb-cat-color: #7b61ff; }
+.pb-cat-espejo { --pb-cat-color: #9b59b6; }
+.pb-cat-aprendizaje { --pb-cat-color: #3498db; }
+.pb-cat-fisico { --pb-cat-color: #2ecc71; }
+.pb-cat-regulacion { --pb-cat-color: #e056fd; }
+.pb-cat-objetivos { --pb-cat-color: #f39c12; }
+.pb-cat-default { --pb-cat-color: rgba(0,150,255,.9); }
+
+.pb-cat-emocion.pb-pill,
+.pb-cat-emocion .pb-linechart-path,
+.pb-cat-emocion .pb-linechart-point { --pb-active: var(--pb-cat-color); }
+.pb-cat-espejo.pb-pill,
+.pb-cat-espejo .pb-linechart-path,
+.pb-cat-espejo .pb-linechart-point { --pb-active: var(--pb-cat-color); }
+.pb-cat-aprendizaje.pb-pill,
+.pb-cat-aprendizaje .pb-linechart-path,
+.pb-cat-aprendizaje .pb-linechart-point { --pb-active: var(--pb-cat-color); }
+.pb-cat-fisico.pb-pill,
+.pb-cat-fisico .pb-linechart-path,
+.pb-cat-fisico .pb-linechart-point { --pb-active: var(--pb-cat-color); }
+.pb-cat-regulacion.pb-pill,
+.pb-cat-regulacion .pb-linechart-path,
+.pb-cat-regulacion .pb-linechart-point { --pb-active: var(--pb-cat-color); }
+.pb-cat-objetivos.pb-pill,
+.pb-cat-objetivos .pb-linechart-path,
+.pb-cat-objetivos .pb-linechart-point { --pb-active: var(--pb-cat-color); }
+
+.pb-cat-emocion.pb-pill-active,
+.pb-cat-espejo.pb-pill-active,
+.pb-cat-aprendizaje.pb-pill-active,
+.pb-cat-fisico.pb-pill-active,
+.pb-cat-regulacion.pb-pill-active,
+.pb-cat-objetivos.pb-pill-active {
+  border-color: color-mix(in srgb, var(--pb-cat-color) 55%, rgba(255,255,255,.18));
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--pb-cat-color) 20%, transparent) inset;
+}
+
+.pb-cat-emocion .pb-linechart-path,
+.pb-cat-espejo .pb-linechart-path,
+.pb-cat-aprendizaje .pb-linechart-path,
+.pb-cat-fisico .pb-linechart-path,
+.pb-cat-regulacion .pb-linechart-path,
+.pb-cat-objetivos .pb-linechart-path {
+  stroke: var(--pb-cat-color);
+}
+.pb-cat-emocion .pb-linechart-point,
+.pb-cat-espejo .pb-linechart-point,
+.pb-cat-aprendizaje .pb-linechart-point,
+.pb-cat-fisico .pb-linechart-point,
+.pb-cat-regulacion .pb-linechart-point,
+.pb-cat-objetivos .pb-linechart-point {
+  fill: var(--pb-cat-color);
+}
+
+/* categorías: barras horizontales */
+.pb-hbars {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.pb-hbar {
+  width: 100%;
+  border: 1px solid rgba(255,255,255,.10);
+  background: rgba(255,255,255,.03);
+  border-radius: 14px;
+  padding: 10px 12px;
+  text-align: left;
+  color: inherit;
+}
+.pb-hbar:hover {
+  background: rgba(255,255,255,.05);
+}
+.pb-hbar-active {
+  border-color: rgba(0,150,255,.45);
+  box-shadow: 0 0 0 2px rgba(0,150,255,.12) inset;
+}
+.pb-hbar-top {
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+  align-items: baseline;
+  margin-bottom: 8px;
+}
+.pb-hbar-name {
+  font-weight: 700;
+}
+.pb-hbar-pts {
+  opacity: .85;
+  font-variant-numeric: tabular-nums;
+}
+.pb-hbar-track {
+  height: 10px;
+  border-radius: 999px;
+  background: rgba(255,255,255,.08);
+  overflow: hidden;
+}
+.pb-hbar-fill {
+  height: 100%;
+  width: 0%;
+  border-radius: 999px;
+  background: rgba(0,150,255,.85);
+}
+.pb-cat-emocion .pb-hbar-fill,
+.pb-cat-espejo .pb-hbar-fill,
+.pb-cat-aprendizaje .pb-hbar-fill,
+.pb-cat-fisico .pb-hbar-fill,
+.pb-cat-regulacion .pb-hbar-fill,
+.pb-cat-objetivos .pb-hbar-fill {
+  background: var(--pb-cat-color);
+}
+
+/* emociones */
+.pb-e-alegria { --pb-em-color: #f1c40f; }
+.pb-e-tristeza { --pb-em-color: #3498db; }
+.pb-e-ira { --pb-em-color: #e74c3c; }
+.pb-e-miedo { --pb-em-color: #2ecc71; }
+.pb-e-default { --pb-em-color: rgba(255,255,255,.55); }
+
+.pb-em-grid {
+  display: grid;
+  grid-template-columns: 1.15fr 0.85fr;
+  gap: 14px;
+  align-items: start;
+}
+@media (max-width: 992px) {
+  .pb-em-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.pb-em-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.pb-em-row {
+  border: 1px solid rgba(255,255,255,.10);
+  background: rgba(255,255,255,.03);
+  border-radius: 14px;
+  padding: 10px 12px;
+  text-align: left;
+  color: inherit;
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+}
+.pb-em-row:hover {
+  background: rgba(255,255,255,.05);
+}
+.pb-em-row-active {
+  border-color: color-mix(in srgb, var(--pb-em-color) 55%, rgba(255,255,255,.18));
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--pb-em-color) 18%, transparent) inset;
+}
+.pb-em-row-name {
+  font-weight: 800;
+}
+.pb-em-row-meta {
+  display: inline-flex;
+  gap: 10px;
+  opacity: .9;
+  font-variant-numeric: tabular-nums;
+}
+
+/* pie sólido (sin degradado) */
+.pb-em-pie {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 8px;
+}
+.pb-em-slice {
+  fill: var(--pb-em-color);
+  stroke: rgba(255,255,255,.25);
+  stroke-width: 2;
+  cursor: pointer;
+  opacity: .95;
+}
+.pb-em-slice:hover {
+  opacity: 1;
+}
+.pb-em-slice-active {
+  stroke: rgba(255,255,255,.85);
+  stroke-width: 3;
+  filter: drop-shadow(0 0 10px color-mix(in srgb, var(--pb-em-color) 40%, transparent));
+}
+.pb-em-pie-center {
+  fill: transparent;
+}
+.pb-em-pie-hint {
+  font-size: 12px;
+  opacity: .7;
+}
+
+/* drilldown emociones (sin cuadros blancos) */
+.pb-em-drill {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.pb-em-day {
+  border: 1px solid rgba(255,255,255,.10);
+  background: rgba(255,255,255,.02);
+  border-radius: 14px;
+  padding: 10px 12px;
+}
+.pb-em-day-head {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  align-items: baseline;
+  margin-bottom: 10px;
+}
+.pb-em-day-notes {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.pb-em-note {
+  border-left: 3px solid rgba(255,255,255,.16);
+  padding-left: 10px;
+}
+.pb-em-note-top {
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+  font-size: 12px;
+  opacity: .85;
+}
+.pb-em-note-int {
+  font-weight: 800;
+}
+.pb-em-note-text {
+  margin-top: 3px;
+  font-size: 13px;
+  opacity: .95;
+}
+
+/* reporte técnico por día */
+.pb-tech-day {
+  border: 1px solid rgba(255,255,255,.10);
+  background: rgba(255,255,255,.02);
+  border-radius: 14px;
+  overflow: hidden;
+}
+.pb-tech-day[open] {
+  border-color: rgba(0,150,255,.35);
+}
+.pb-tech-day-summary {
+  list-style: none;
+  cursor: pointer;
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 10px 12px;
+}
+.pb-tech-day-summary::-webkit-details-marker {
+  display: none;
+}
+.pb-tech-day-body {
+  padding: 10px 12px 12px;
+  border-top: 1px solid rgba(255,255,255,.08);
+}
+
+/* Reporte técnico — DAY */
+.pb-mirror-day .pb-tech-day {
+  background: rgba(255, 255, 255, 0.92);
+  border: 1px solid rgba(20, 24, 36, 0.12);
+}
+
+.pb-mirror-day .pb-tech-day-body {
+  border-top: 1px solid rgba(20, 24, 36, 0.10);
+}
+
+.pb-mirror-day .pb-tech-day[open] {
+  border-color: rgba(13, 110, 253, 0.35);
+  box-shadow: 0 10px 24px rgba(13, 110, 253, 0.10);
+}
+
+.pb-tech-right {
+  font-variant-numeric: tabular-nums;
+}
+
