@@ -3,7 +3,7 @@ import requests
 
 LOOPS_API_KEY = os.getenv("LOOPS_API_KEY")
 LOOPS_BASE_URL = "https://app.loops.so/api/v1"
-url_Frontend = os.getenv('VITE_FRONTEND_URL') + "auth/login"
+url_Frontend = os.getenv('VITE_FRONTEND_URL') + "/auth/login"
 
 
 class LoopsError(Exception):

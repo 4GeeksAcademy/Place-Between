@@ -11,13 +11,17 @@ from api.models import (
     SessionType,
     ActivityCategory,
     ActivityType,
+    Reminder,
+    ReminderType,
+    ReminderMode
 )
 from flask_cors import CORS
 from datetime import datetime, timedelta, timezone
-from flask_jwt_extended import create_access_token, jwt_required, get_jwt_identity
+from flask_jwt_extended import create_access_token, jwt_required, get_jwt_identity, decode_token
 from api.service_loops.welcome_user import send_welcome_transactional , LoopsError
 from api.service_loops.reset_password import send_password_reset
 from api.service_loops.verify_email import send_verify_email , LoopsError
+from api.service_loops.inactive_reminder import send_inactive_reminder
 import os
 from werkzeug.security import generate_password_hash
 
@@ -94,10 +98,11 @@ def register():
 
         verify_token = create_access_token(
         identity=str(user.id),
-        expires_delta=timedelta(hours=24)
+        expires_delta=timedelta(hours=24),
+        additional_claims={"type": "verify_email"}
         )
 
-        verify_url = "http://localhost:3001/api/verify-email?token=" + verify_token
+        verify_url = f"{os.getenv('VITE_BACKEND_URL')}/api/verify-email?token={verify_token}"
 
         send_verify_email(
             email=user.email,
@@ -145,6 +150,40 @@ def login():
     }), 200
 
 #--------------------------
+# EMAIL VERIFICATION
+#--------------------------
+@api.route("/verify-email", methods=["GET"])
+def verify_email():
+    token = request.args.get("token")
+    if not token:
+        return jsonify({"msg": "Falta token"}), 400
+
+    try:
+        decoded = decode_token(token)  
+        token_type = decoded.get("type")
+        if token_type != "verify_email":
+            return jsonify({"msg": "Token invalido (tipo incorrecto)"}), 400
+
+        user_id = decoded.get("sub") 
+        user = User.query.get(int(user_id)) if user_id else None
+        if not user:
+            return jsonify({"msg": "Usuario no existe"}), 404
+
+        if user.is_email_verified:
+            
+            return jsonify({"msg": "Email ya estaba verificado"}), 200
+
+        user.is_email_verified = True
+        user.email_verified_at = datetime.now(timezone.utc)
+        db.session.commit()
+
+        return jsonify({"msg": "Email verificado con exito"}), 200
+
+    except Exception as e:
+        print("Error verify-email (debug):", repr(e))
+        return jsonify({"msg": "Token invalido o expirado"}), 400
+
+#--------------------------
 # PASSWORD RESET
 #--------------------------
 @api.route('/auth/forgot-password', methods=['POST'])
@@ -164,7 +203,7 @@ def reset_password():
     expires_delta=timedelta(hours=1)
 )
     
-    url_reset = os.getenv('VITE_FRONTEND_URL') + "auth/reset?token=" + token
+    url_reset = os.getenv('VITE_FRONTEND_URL') + "/auth/reset?token=" + token
     
     send_password_reset(email, url_reset)
 
@@ -717,6 +756,88 @@ def dev_deactivate_activity():
     db.session.commit()
 
     return jsonify({"msg": "Actividad desactivada", "external_id": external_id}), 200
+
+#--------------------------
+#REMINDERS
+#-------------------------
+@api.route("/tasks/send-reminders", methods=["POST"])
+def task_send_reminders():
+
+   
+    internal_token = request.headers.get("X-Internal-Token")
+    if internal_token != os.getenv("INTERNAL_TASK_TOKEN"):
+        return jsonify({"msg": "Unauthorized"}), 401
+
+    now_utc = datetime.now(timezone.utc)
+
+    
+    reminders = Reminder.query.filter_by(
+        is_active=True,
+        reminder_type=ReminderType.inactive_nudge
+    ).all()
+
+    sent = 0
+    skipped = 0
+    errors = 0
+
+    frontend_url = (os.getenv("VITE_FRONTEND_URL") or "").rstrip("/")
+    url_app = f"{frontend_url}/" if frontend_url else "/"
+
+    for r in reminders:
+        user = User.query.get(r.user_id)
+        if not user:
+            skipped += 1
+            continue
+
+        if not user.is_email_verified:
+            skipped += 1
+            continue
+
+        if r.mode != ReminderMode.inactivity:
+            skipped += 1
+            continue
+
+        if not r.inactive_after_minutes:
+            skipped += 1
+            continue
+
+      
+        last = user.last_activity_at or user.last_login_at or user.created_at
+        diff_minutes = int((now_utc - last).total_seconds() // 60)
+
+        
+        if diff_minutes < int(r.inactive_after_minutes):
+            skipped += 1
+            continue
+
+       
+        if r.last_sent_at and (now_utc - r.last_sent_at) < timedelta(hours=24):
+            skipped += 1
+            continue
+
+        
+        try:
+            send_inactive_reminder(
+                email=user.email,
+                username=user.username,
+                url_app=url_app
+            )
+            r.last_sent_at = now_utc
+            db.session.commit()
+            sent += 1
+
+        except Exception as e:
+            print("Error Loops inactive reminder:", repr(e))
+            db.session.rollback()
+            errors += 1
+
+    return jsonify({
+        "ok": True,
+        "processed": len(reminders),
+        "sent": sent,
+        "skipped": skipped,
+        "errors": errors
+    }), 200
 
 # -------------------------
 # TEMPORARILY DISABLED ROUTES
