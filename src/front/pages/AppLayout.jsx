@@ -74,7 +74,7 @@ export const AppLayout = () => {
 			<ToastHost isNight={isNight} />
 			<Outlet />
 			{/* Sin footer en área privada */}
+			</MusicPlayerContext.Provider>
 		</ToastProvider>
-		</MusicPlayerContext.Provider>
 	);
 };

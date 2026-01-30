@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { getBackendUrl } from "../utils"; // your helper
+import { getBackendUrl } from "../components/runners/EmotionCheckinRunner"; // your helper
 import { useNavigate } from "react-router-dom";
 import { useMusicPlayer } from "../contexts/MusicPlayerContext"; // assumes you have context
 
@@ -37,7 +37,7 @@ export const Profile = () => {
 		setStatus({ loading: true, error: "", success: "" });
 
 		try {
-			const res = await fetch(`${BACKEND_URL}/api/users/me`, {
+			const res = await fetch(`${BACKEND_URL}/api/users/`, {
 				method: "PATCH", // partial update
 				headers: {
 					"Content-Type": "application/json",
