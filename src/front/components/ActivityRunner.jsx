@@ -1,194 +1,123 @@
-import React, { useEffect, useMemo, useState, useContext } from "react";
-import { MusicPlayerContext } from "../contexts/MusicPlayerContext.jsx";
+import React, { useMemo } from "react";
+import { runnerAliases, runnerMap, knownRunTypes } from "./runners/runnerRegistry";
 
+/**
+ * Normaliza activity.run a un objeto estable:
+ * - Si run es string: { type: run }
+ * - Si run es objeto: { type: run.type, ...run }
+ * - Si no hay run: null
+ */
+const normalizeRun = (run) => {
+    if (!run) return null;
 
-const getBackendUrl = () => (import.meta.env.VITE_BACKEND_URL || "").replace(/\/$/, "");
-
-// Normaliza: lower + sin tildes + trim
-const normalize = (s) =>
-    String(s || "")
-        .trim()
-        .toLowerCase()
-        .normalize("NFD")
-        .replace(/[\u0300-\u036f]/g, "");
-
-// MVP: 4 ramas base (permitimos variantes)
-const ALLOWED_EMOTION_NAMES = new Set([
-    "alegria",
-    "tristeza",
-    "ira",
-    "miedo",
-    "miedo/ansiedad",
-    "ansiedad",
-]);
-
-const getIntensityTier = (n) => {
-    if (n <= 3) return "low";
-    if (n <= 7) return "mid";
-    return "high";
-};
-
-export const ActivityRunner = ({ activity, onSaved }) => {
-    const runKey = activity?.run;
-
-    // Alias para no romper si aún hay activities con run antiguo
-    if (runKey === "emotion_checkin" || runKey === "emotion_picker") {
-        return <EmotionCheckinRunner onSaved={onSaved} />;
+    // string canonical
+    if (typeof run === "string") {
+        const type = run.trim();
+        return type ? { type } : null;
     }
 
-    return (
-        <div className="text-secondary">
-            Runner no implementado aún: <span className="pb-mono">{String(runKey)}</span>
-        </div>
-    );
+    // objeto (futuro): { type, ...params }
+    if (typeof run === "object") {
+        const type = String(run.type || "").trim();
+        if (!type) return null;
+        return { ...run, type };
+    }
+
+    return null;
 };
 
-const EmotionCheckinRunner = ({ onSaved }) => {
-    const BACKEND_URL = getBackendUrl();
-    const token = localStorage.getItem("pb_token"); // necesario SOLO para guardar
+/**
+ * Aplica aliases legacy → canonical.
+ */
+const canonicalizeType = (type) => {
+    // Solo aceptamos string como tipo válido
+    const t = typeof type === "string" ? type.trim() : "";
+    if (!t) return "";
 
-    const [emotions, setEmotions] = useState([]);
-    const [loading, setLoading] = useState(true);
-    const [err, setErr] = useState(null);
+    const alias = runnerAliases[t];
 
-    const [emotionId, setEmotionId] = useState("");
-    const [intensity, setIntensity] = useState(5); // 1..10
-    const [note, setNote] = useState("");
-    const [saving, setSaving] = useState(false);
+    // Alias válido SOLO si es string
+    if (typeof alias === "string" && alias.trim()) return alias.trim();
 
-    const { fetchMusic } = useContext(MusicPlayerContext); // para actualizar música al guardar checkin
+    return t;
+};
 
-    useEffect(() => {
-        const load = async () => {
-            try {
-                setLoading(true);
-                setErr(null);
+/**
+ * UI estándar cuando run falta o no es válido.
+ */
+const MissingRun = () => (
+    <div className="alert alert-warning mb-0">
+        <div className="fw-semibold mb-1">Esta actividad no tiene runner asignado.</div>
+        <div className="small">
+            Falta <span className="pb-mono">activity.run</span> en el catálogo (activities.js) o no se enriqueció desde DB.
+        </div>
+    </div>
+);
 
-                if (!BACKEND_URL) throw new Error("VITE_BACKEND_URL no está configurado.");
+/**
+ * UI estándar cuando el run existe pero no hay runner implementado aún.
+ */
+const UnimplementedRun = ({ type }) => (
+    <div className="alert alert-secondary mb-0">
+        <div className="fw-semibold mb-1">Runner pendiente</div>
+        <div className="small">
+            <span className="pb-mono">{typeof type === "string" ? type : "—"}</span> no está implementado aún.
+        </div>
+    </div>
+);
 
-                // GET /api/emotions ahora es público en tu backend
-                const res = await fetch(`${BACKEND_URL}/api/emotions`);
-                const data = await res.json().catch(() => null);
+export const ActivityRunner = ({ activity, onSaved }) => {
+    // 1) Normaliza el run (string/u objeto) y aplica canonical
+    const runNorm = useMemo(() => normalizeRun(activity?.run), [activity?.run]);
+    const runType = useMemo(() => canonicalizeType(runNorm?.type), [runNorm?.type]);
 
-                if (!res.ok) throw new Error(data?.msg || "Error cargando emociones");
-                if (!Array.isArray(data)) throw new Error("Respuesta inválida del backend (no es lista).");
-
-                const filtered = data.filter((e) => ALLOWED_EMOTION_NAMES.has(normalize(e.name)));
-
-                if (filtered.length === 0) {
-                    throw new Error(
-                        "No hay emociones válidas en DB. Crea: Alegría, Tristeza, Ira y Miedo (o Ansiedad)."
-                    );
-                }
-
-                setEmotions(filtered);
-                setEmotionId(String(filtered[0].id));
-            } catch (e) {
-                setErr(e?.message || "Error cargando emociones");
-            } finally {
-                setLoading(false);
-            }
-        };
-
-        load();
-    }, [BACKEND_URL]);
-
-    const selectedEmotion = useMemo(
-        () => emotions.find((e) => String(e.id) === String(emotionId)),
-        [emotions, emotionId]
-    );
-
-    const intensityTier = useMemo(() => getIntensityTier(Number(intensity)), [intensity]);
-
-    const save = async () => {
-        try {
-            setSaving(true);
-            setErr(null);
-
-            if (!emotionId) throw new Error("Selecciona una emoción.");
-            if (!token) throw new Error("Necesitas iniciar sesión para guardar el check-in.");
-            if (!BACKEND_URL) throw new Error("VITE_BACKEND_URL no está configurado.");
-
-            const res = await fetch(`${BACKEND_URL}/api/emotions/checkin`, {
-                method: "POST",
-                headers: {
-                    "Content-Type": "application/json",
-                    Authorization: `Bearer ${token}`,
-                },
-                body: JSON.stringify({
-                    emotion_id: Number(emotionId),
-                    intensity: Number(intensity),
-                    note,
-                }),
+    // 2) Dev warnings (para detectar problemas de catálogo/seed/enrich)
+    //    - No rompe en prod, pero te da señales claras en dev.
+    if (import.meta?.env?.DEV) {
+        if (!runNorm) {
+            console.warn("[ActivityRunner] activity.run missing/invalid:", {
+                activityId: activity?.id,
+                title: activity?.title,
+                run: activity?.run,
             });
-
-            const data = await res.json().catch(() => ({}));
-            if (!res.ok) throw new Error(data?.msg || "No se pudo guardar el check-in");
-
-            onSaved?.(data);
-            fetchMusic(); // actualiza la música de fondo según emoción registrada
-        } catch (e) {
-            setErr(e?.message || "Error guardando check-in");
-        } finally {
-            setSaving(false);
+        } else if (!knownRunTypes.has(runType)) {
+            console.warn("[ActivityRunner] unknown run.type (not in knownRunTypes):", {
+                activityId: activity?.id,
+                title: activity?.title,
+                runType,
+                run: runNorm,
+            });
+        } else if (!runnerMap[runType]) {
+            console.warn("[ActivityRunner] run.type known but runner not implemented:", {
+                activityId: activity?.id,
+                title: activity?.title,
+                runType,
+            });
         }
+    }
+
+    // 3) Validaciones
+    if (!runNorm) return <MissingRun />;
+
+    const Runner = runnerMap[runType];
+    if (!Runner) return <UnimplementedRun type={runType || "—"} />;
+
+    // 4) Wrapper de onSaved (payload normalizado para todos los runners)
+    const onSavedNormalized = (payload) => {
+        // No rompemos callers: si no hay onSaved, no hacemos nada
+        onSaved?.({
+            activity: {
+                id: activity?.id,
+                title: activity?.title,
+                phase: activity?.phase,
+            },
+            run: runNorm,
+            runType,
+            payload: payload ?? null,
+            at: new Date().toISOString(),
+        });
     };
 
-    if (loading) return <div className="text-secondary">Cargando emociones…</div>;
-    if (err) return <div className="alert alert-warning mb-0">{err}</div>;
-
-    return (
-        <div>
-            <div className="mb-3">
-                <label className="form-label fw-semibold">¿Qué emoción predomina ahora?</label>
-                <select className="form-select" value={emotionId} onChange={(e) => setEmotionId(e.target.value)}>
-                    {emotions.map((e) => (
-                        <option key={e.id} value={e.id}>
-                            {e.name}
-                        </option>
-                    ))}
-                </select>
-
-                {selectedEmotion?.description && (
-                    <div className="small text-secondary mt-2">{selectedEmotion.description}</div>
-                )}
-            </div>
-
-            <div className="mb-3">
-                <label className="form-label fw-semibold">
-                    Intensidad: <span className="pb-mono">{intensity}</span>/10
-                </label>
-
-                <input
-                    type="range"
-                    className="form-range"
-                    min="1"
-                    max="10"
-                    step="1"
-                    value={intensity}
-                    onChange={(e) => setIntensity(Number(e.target.value))}
-                />
-
-                <div className="d-flex justify-content-between small text-secondary">
-                    <span>Suave</span>
-                    <span>Muy intensa</span>
-                </div>
-            </div>
-
-            <div className="mb-3">
-                <label className="form-label fw-semibold">Nota (opcional)</label>
-                <textarea
-                    className="form-control"
-                    rows={3}
-                    value={note}
-                    onChange={(e) => setNote(e.target.value)}
-                    placeholder="¿Qué lo ha provocado? ¿Qué necesitas?"
-                />
-            </div>
-
-            <button className="btn btn-primary w-100" onClick={save} disabled={saving}>
-                {saving ? "Guardando…" : "Guardar check-in"}
-            </button>
-        </div>
-    );
+    // 5) Ejecuta runner
+    return <Runner activity={activity} run={runNorm} onSaved={onSavedNormalized} />;
 };

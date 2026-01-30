@@ -1,28 +1,51 @@
 import React from "react";
 
+// Fallback visual para actividades sin imagen (DB-only o catálogo incompleto)
+const FALLBACK_IMG = "/assets/img/rigo-baby.png"; // ajusta si tu ruta real es otra
+
 export const ActivityCard = ({
     activity,
     completed = false,
     variant = "compact", // "hero" | "compact"
     onStart,
-    onComplete,
-    showCompleteButton = true,
+    onComplete, // (de momento no se usa aquí; lo dejamos por compat)
+    showCompleteButton = true, // (de momento no se usa; lo dejamos por compat)
 }) => {
+    const hasRun = Boolean(activity?.run);
+    const duration = Number(activity?.duration);
+    const durationLabel = Number.isFinite(duration) ? `${duration} min` : "—";
+
+    // Imagen: si falta, usamos fallback (modelo 2A friendly)
+    const imageSrc = activity?.image || FALLBACK_IMG;
+
     return (
         <div className={`pb-activity card shadow-sm ${variant === "hero" ? "pb-activity-hero" : ""}`}>
-            {activity.image && (
-                <div className="pb-activity-imgWrap">
-                    <img className="pb-activity-img" src={activity.image} alt={activity.title} />
-                </div>
-            )}
+            {/* Imagen siempre visible para consistencia de layout */}
+            <div className="pb-activity-imgWrap">
+                <img
+                    className="pb-activity-img"
+                    src={imageSrc}
+                    alt={activity?.title || "Actividad"}
+                    loading="lazy"
+                    onError={(e) => {
+                        // Si la imagen remota falla, caemos al fallback local sin bucle infinito
+                        if (e.currentTarget.src.includes("rigo-baby")) return;
+                        e.currentTarget.src = FALLBACK_IMG;
+                    }}
+                />
+            </div>
 
             <div className={`card-body ${variant === "hero" ? "p-4 p-lg-5" : "p-4"}`}>
                 <div className="d-flex justify-content-between align-items-start gap-3">
                     <div>
                         <div className="pb-meta">
-                            <span className={`badge ${activity.branchBadge || "text-bg-light border"}`}>{activity.branch}</span>
+                            <span className={`badge ${activity?.branchBadge || "text-bg-light border"}`}>
+                                {activity?.branch || "General"}
+                            </span>
+
                             <span className="pb-dot" />
-                            <span className="text-secondary small">{activity.duration} min</span>
+                            <span className="text-secondary small">{durationLabel}</span>
+
                             {completed && (
                                 <>
                                     <span className="pb-dot" />
@@ -32,26 +55,36 @@ export const ActivityCard = ({
                         </div>
 
                         <h3 className={`${variant === "hero" ? "h3" : "h5"} fw-bold mt-2 mb-2`}>
-                            {activity.title}
+                            {activity?.title || "Actividad"}
                         </h3>
 
-                        <p className="text-secondary mb-0">{activity.description}</p>
+                        <p className="text-secondary mb-0">{activity?.description || "Sin descripción."}</p>
                     </div>
 
-                    {activity.priority && variant === "hero" && (
-                        <span className="badge text-bg-warning">Prioridad</span>
-                    )}
+                    {activity?.priority && variant === "hero" && <span className="badge text-bg-warning">Prioridad</span>}
                 </div>
 
                 <div className="d-flex flex-wrap gap-2 mt-3">
-                    <button className="btn btn-primary" onClick={() => onStart?.(activity)}>
+                    <button
+                        className="btn btn-primary"
+                        onClick={() => onStart?.(activity)}
+                        disabled={!hasRun}
+                        title={!hasRun ? "Actividad pendiente de configuración (sin runner)" : "Empezar"}
+                    >
                         Empezar
                     </button>
 
-                    
+                    {/* Aquí podríamos añadir un botón “Ver detalles” en el futuro */}
                 </div>
 
-                {activity.reason && (
+                {/* Mensaje claro cuando viene de BD sin enrich */}
+                {!hasRun && (
+                    <div className="mt-3 small text-secondary">
+                        <span className="fw-semibold">Pendiente:</span> esta actividad aún no tiene runner asignado.
+                    </div>
+                )}
+
+                {activity?.reason && (
                     <div className="mt-3 small text-secondary">
                         <span className="fw-semibold">Sugerencia:</span> {activity.reason}
                     </div>

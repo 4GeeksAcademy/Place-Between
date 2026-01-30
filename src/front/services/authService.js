@@ -91,3 +91,44 @@ export function getUserScope() {
     return "anon";
   }
 }
+
+// ===== Password reset (front-only stubs) =====
+// Cuando llegue el backend, sustituye el mock por los endpoints reales.
+
+export async function requestPasswordReset(email) {
+  // Mock si todavía no hay backend configurado
+  if (!API_BASE) {
+    await new Promise((r) => setTimeout(r, 600));
+    return { ok: true, mock: true };
+  }
+
+  // TODO: reemplazar con endpoint real del backend
+  const res = await fetch(`${API_BASE}/api/auth/forgot-password`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ email }),
+  });
+
+  if (!res.ok) throw new Error(await parseError(res));
+  return await res.json().catch(() => ({}));
+}
+
+export async function resetPassword({ token, password }) {
+  if (!API_BASE) {
+    await new Promise((r) => setTimeout(r, 700));
+    return { ok: true, mock: true };
+  }
+
+  // TODO: reemplazar con endpoint real del backend
+  const res = await fetch(`${API_BASE}/api/auth/reset-password`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json",
+       'Authorization': 'Bearer ' + token
+    },
+    
+    body: JSON.stringify({ token, password }),
+  });
+
+  if (!res.ok) throw new Error(await parseError(res));
+  return await res.json().catch(() => ({}));
+}

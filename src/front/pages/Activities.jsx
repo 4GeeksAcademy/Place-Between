@@ -1,9 +1,14 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { ActivityCard } from "../components/ActivityCard";
-import { ActivityRunner } from "../components/ActivityRunner";
+import { ActivityModal } from "../components/ActivityModal";
+import { useToasts } from "../components/toasts/ToastContext";
+
+import { normalizePointsResult } from "../services/pointsService";
+import { getUserScope } from "../services/authService";
 
 import { activitiesCatalog } from "../data/activities";
 
+// ---------- Helpers ----------
 
 const getBackendUrl = () => {
 	const url = import.meta.env.VITE_BACKEND_URL;
@@ -11,6 +16,7 @@ const getBackendUrl = () => {
 };
 
 const phaseLabel = (phaseKey) => (phaseKey === "night" ? "Noche" : "Día");
+
 
 /**
  * Construye un índice rápido del catálogo local por id (external_id).
@@ -25,11 +31,61 @@ const buildCatalogIndex = () => {
 	return m;
 };
 
+const getDateKey = () => {
+	const d = new Date();
+	const yyyy = d.getFullYear();
+	const mm = String(d.getMonth() + 1).padStart(2, "0");
+	const dd = String(d.getDate()).padStart(2, "0");
+	return `${yyyy}-${mm}-${dd}`;
+};
+
+const storageKey = (userScope, dateKey, phaseKey) =>
+	`pb_${userScope}_today_${dateKey}_${phaseKey}`;
+
+const todaySetKey = (userScope, dateKey, phaseKey) =>
+	`pb_${userScope}_todayset_${dateKey}_${phaseKey}`;
+
+const loadCompleted = (userScope, dateKey, phaseKey) => {
+	try {
+		const raw = localStorage.getItem(storageKey(userScope, dateKey, phaseKey));
+		if (!raw) return [];
+		const parsed = JSON.parse(raw);
+		return Array.isArray(parsed?.completed) ? parsed.completed : [];
+	} catch {
+		return [];
+	}
+};
+
+const saveCompleted = (userScope, dateKey, phaseKey, completed) => {
+	localStorage.setItem(
+		storageKey(userScope, dateKey, phaseKey),
+		JSON.stringify({ completed })
+	);
+};
+
+const loadTodaySet = (userScope, dateKey, phaseKey) => {
+	try {
+		const raw = localStorage.getItem(todaySetKey(userScope, dateKey, phaseKey));
+		if (!raw) return null;
+		return JSON.parse(raw);
+	} catch {
+		return null;
+	}
+};
+
 export const Activities = () => {
+	// Contextos fijos para hoy
+	const dateKey = useMemo(() => getDateKey(), []);
+	const userScope = useMemo(() => getUserScope(), []);
+
+	// Estados de filtros y UI
+	const [completedDay, setCompletedDay] = useState(() => loadCompleted(userScope, dateKey, "day"));
+	const [completedNight, setCompletedNight] = useState(() => loadCompleted(userScope, dateKey, "night"));
 	const [phaseFilter, setPhaseFilter] = useState("all"); // all | day | night
 	const [branchFilter, setBranchFilter] = useState("all");
 	const [q, setQ] = useState("");
 	const [activeActivity, setActiveActivity] = useState(null);
+	const { pushPointsToast } = useToasts();
 
 	// Datos desde backend
 	const [dbActivities, setDbActivities] = useState([]);
@@ -38,8 +94,14 @@ export const Activities = () => {
 
 	const BACKEND_URL = getBackendUrl();
 
+	// Unión de completadas (para evitar duplicados)
+	const completedAll = useMemo(() => {
+		return new Set([...(completedDay || []), ...(completedNight || [])]);
+	}, [completedDay, completedNight]);
+
 	// Índice del catálogo local (para enriquecer)
 	const catalogIndex = useMemo(() => buildCatalogIndex(), []);
+
 
 	// 1) Fetch de actividades activas desde DB (requiere JWT)
 	useEffect(() => {
@@ -179,10 +241,20 @@ export const Activities = () => {
 			});
 	}, [allActivities, phaseFilter, branchFilter, q]);
 
+	// Actualiza completadas cuando cambia la ruta (usuario puede cambiar scope al cambiar entre espacios)
+	useEffect(() => {
+		const nextScope = getUserScope();
+		const day = loadCompleted(nextScope, dateKey, "day");
+		const night = loadCompleted(nextScope, dateKey, "night");
+		setCompletedDay(day);
+		setCompletedNight(night);
+		// eslint-disable-next-line react-hooks/exhaustive-deps
+	}, [location.pathname, location.search]);
+
 	const onStart = (activity) => setActiveActivity(activity);
 
 	// Completar en backend (catálogo = 5 puntos)
-	const completeActivityBackend = async (activity) => {
+	const completeActivityBackend = async (activity, { source, isRecommended }) => {
 		const token = localStorage.getItem("pb_token");
 		if (!token) return null;
 		if (!BACKEND_URL) return null;
@@ -195,15 +267,22 @@ export const Activities = () => {
 					Authorization: `Bearer ${token}`,
 				},
 				body: JSON.stringify({
-					external_id: activity.id, // id UI == external_id DB
-					session_type: activity.phase, // "day" | "night"
-					source: "catalog",
-					is_recommended: false,
+					external_id: activity.id,
+					session_type: activity.phase,      // "day" | "night"
+					source,                            // "today" | "catalog"
+					is_recommended: !!isRecommended,   // true si era la recomendada del set
 				}),
 			});
 
 			const data = await res.json().catch(() => ({}));
 			if (!res.ok) throw new Error(data?.msg || "Error backend");
+
+			const toast = normalizePointsResult(data, {
+				source,
+				isRecommended: !!isRecommended,
+			});
+
+			if (toast) pushPointsToast(toast);
 
 			return data;
 		} catch (e) {
@@ -211,6 +290,40 @@ export const Activities = () => {
 			return null;
 		}
 	};
+
+	// Maneja completado (backend + localStorage + UI)
+	const handleComplete = async (activity) => {
+		const phaseKey = activity.phase; // "day" | "night"
+		const set = loadTodaySet(userScope, dateKey, phaseKey);
+
+		const inTodaySet = !!set && (
+			set?.recommendedId === activity.id ||
+			(Array.isArray(set?.pillarIds) && set.pillarIds.includes(activity.id))
+		);
+
+		const isRecommended = !!set && set?.recommendedId === activity.id;
+
+		const source = inTodaySet ? "today" : "catalog";
+
+		// 1) backend (puntos fuente de verdad)
+		await completeActivityBackend(activity, { source, isRecommended });
+
+		// 2) localStorage + UI (para que Today/Activities compartan “completed”)
+		if (phaseKey === "day") {
+			setCompletedDay((prev) => {
+				const next = prev.includes(activity.id) ? prev : [...prev, activity.id];
+				saveCompleted(userScope, dateKey, "day", next);
+				return next;
+			});
+		} else {
+			setCompletedNight((prev) => {
+				const next = prev.includes(activity.id) ? prev : [...prev, activity.id];
+				saveCompleted(userScope, dateKey, "night", next);
+				return next;
+			});
+		}
+	};
+
 
 	// UI states
 	if (loading) {
@@ -316,7 +429,7 @@ export const Activities = () => {
 								...a,
 								reason: a.reason ? `${a._phaseLabel}: ${a.reason}` : `${a._phaseLabel}`,
 							}}
-							completed={false}
+							completed={completedAll.has(a.id)}
 							onStart={onStart}
 							onComplete={() => { }}
 							showCompleteButton={false}
@@ -326,55 +439,18 @@ export const Activities = () => {
 			</div>
 
 			{activeActivity && (
-				<>
-					<div className="modal d-block" tabIndex="-1" role="dialog" aria-modal="true">
-						<div className="modal-dialog modal-dialog-centered" role="document">
-							<div className="modal-content">
-								<div className="modal-header">
-									<h5 className="modal-title">{activeActivity.title}</h5>
-									<button type="button" className="btn-close" onClick={() => setActiveActivity(null)} />
-								</div>
-
-								<div className="modal-body">
-									<p className="text-secondary mb-2">{activeActivity.description}</p>
-
-									<div className="mt-3 p-3 border rounded bg-dark">
-										<div className="fw-semibold mb-2">Ejercicio</div>
-
-										<ActivityRunner
-											activity={activeActivity}
-											onSaved={async () => {
-												// al guardar el check-in, marcamos completado en backend (catálogo)
-												await completeActivityBackend(activeActivity);
-												setActiveActivity(null);
-											}}
-										/>
-									</div>
-								</div>
-
-								<div className="modal-footer">
-									<button className="btn btn-outline-secondary" onClick={() => setActiveActivity(null)}>
-										Cerrar
-									</button>
-
-									{activeActivity.run !== "emotion_checkin" && (
-										<button
-											className="btn btn-primary"
-											onClick={async () => {
-												await completeActivityBackend(activeActivity);
-												setActiveActivity(null);
-											}}
-										>
-											Empezar ahora
-										</button>
-									)}
-								</div>
-							</div>
-						</div>
-					</div>
-
-					<div className="modal-backdrop show" />
-				</>
+				<ActivityModal
+					activity={activeActivity}
+					onClose={() => setActiveActivity(null)}
+					onComplete={async () => {
+						await handleComplete(activeActivity);
+						setActiveActivity(null);
+					}}
+					onSaved={async () => {
+						await handleComplete(activeActivity);
+						setActiveActivity(null);
+					}}
+				/>
 			)}
 		</div>
 	);

@@ -1,0 +1,40 @@
+/* Place Between — Activities (cards/modals shared by Today/Activities) */
+
+.pb-progress {
+  border-radius: 18px;
+  border: 1px solid rgba(0, 0, 0, 0.08);
+  min-width: 320px;
+}
+
+.pb-night {
+  border-radius: 18px;
+  border: 1px solid rgba(0, 0, 0, 0.08);
+}
+
+.pb-activity {
+  border-radius: 18px;
+  border: 1px solid rgba(0, 0, 0, 0.08);
+  overflow: hidden;
+}
+
+.pb-activity-hero {
+  border-radius: 22px;
+}
+
+.pb-activity-imgWrap {
+  width: 100%;
+  height: 220px;
+  overflow: hidden;
+  background: #f8f9fa;
+}
+
+.pb-activity-hero .pb-activity-imgWrap {
+  height: 280px;
+}
+
+.pb-activity-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}

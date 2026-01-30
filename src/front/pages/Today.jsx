@@ -2,7 +2,8 @@ import React, { useEffect, useMemo, useState } from "react";
 import { useLocation } from "react-router-dom";
 import { ActivityCard } from "../components/ActivityCard";
 import { ProgressRing } from "../components/ProgressRing";
-import { ActivityRunner } from "../components/ActivityRunner";
+import { ActivityModal } from "../components/ActivityModal";
+import { useToasts } from "../components/toasts/ToastContext";
 
 import { buildTodaySet } from "../data/todaySelector";
 import { weekdayLabelES } from "../data/weeklyPlan";
@@ -11,7 +12,7 @@ import { activitiesCatalog } from "../data/activities";
 import { getUserScope } from "../services/authService";
 
 // puntos (local)
-import { loadPointsState, awardPointsOnce } from "../services/pointsService";
+import { loadPointsState, awardPointsOnce, normalizePointsResult } from "../services/pointsService";
 
 /*-------------
  *
@@ -120,6 +121,9 @@ export const Today = () => {
     const dateKey = useMemo(() => getDateKey(), []);
     const dayIndex = useMemo(() => new Date().getDay(), []); // 0..6 (Dom..Sáb)
 
+    // Toast global (montado en AppLayout)
+    const { pushPointsToast } = useToasts();
+
     // userScope en state para permitir rehidratación al cambiar usuario en SPA
     const [userScope, setUserScope] = useState(() => getUserScope());
 
@@ -135,7 +139,7 @@ export const Today = () => {
 
     // puntos de hoy (local)
     const [pointsToday, setPointsToday] = useState(() => loadPointsState(dateKey).total);
-    const [lastPointsToast, setLastPointsToast] = useState(null); // {points, reason}
+
 
     // Set congelado (recommendedId + pillarIds)
     const [todaySetIds, setTodaySetIds] = useState(null);
@@ -326,16 +330,17 @@ export const Today = () => {
         });
 
         if (res.awarded) {
+            // Actualiza contador local
             setPointsToday(res.total);
 
-            let reason = "Actividad completada";
-            if (source === "catalog") reason = "Catálogo (bonus reducido)";
-            else if (isCorrectPhase && isRecommended) reason = "Bonus: recomendada en fase correcta";
-            else if (isCorrectPhase) reason = "Hecha en fase correcta";
-            else reason = "Fuera de fase (bonus reducido)";
+            // Normaliza y dispara toast global
+            const toast = normalizePointsResult(
+                // shape local: {awarded, points, total, ...}
+                { ...res },
+                { source, isCorrectPhase, isRecommended }
+            );
 
-            setLastPointsToast({ points: res.points, reason });
-            setTimeout(() => setLastPointsToast(null), 2200);
+            if (toast) pushPointsToast(toast);
         }
     };
 
@@ -441,23 +446,6 @@ export const Today = () => {
                     </div>
                 </div>
 
-                {/* Toast puntos */}
-                {lastPointsToast && (
-                    <div
-                        className="position-fixed bottom-0 end-0 p-3"
-                        style={{ zIndex: 1080 }}
-                        aria-live="polite"
-                        aria-atomic="true"
-                    >
-                        <div className="toast show border-0 shadow-sm">
-                            <div className="toast-body">
-                                <div className="fw-semibold">+{lastPointsToast.points} puntos</div>
-                                <div className="small text-secondary">{lastPointsToast.reason}</div>
-                            </div>
-                        </div>
-                    </div>
-                )}
-
                 {/* Recommended */}
                 {recommended ? (
                     <div className="mb-4 mb-lg-5">
@@ -500,7 +488,7 @@ export const Today = () => {
                 </div>
 
                 {/* Noche: bloque informativo extra (opcional para más adelante) */}
-                {false  && (
+                {false && (
                     <div className="mt-4 mt-lg-5">
                         <div className="card shadow-sm pb-night">
                             <div className="card-body p-4 d-flex flex-column flex-md-row justify-content-between align-items-start gap-3">
@@ -520,80 +508,18 @@ export const Today = () => {
 
                 {/* Modal / Runner */}
                 {activeActivity && (
-                    <>
-                        <div
-                            className="modal d-block"
-                            tabIndex="-1"
-                            role="dialog"
-                            style={{ background: "rgba(0,0,0,0.55)" }}
-                            onClick={() => setActiveActivity(null)}
-                        >
-                            <div
-                                className="modal-dialog modal-dialog-centered"
-                                role="document"
-                                onClick={(e) => e.stopPropagation()}
-                            >
-                                <div className="modal-content">
-                                    <div className="modal-header">
-                                        <h5 className="modal-title">{activeActivity.title}</h5>
-                                        <button
-                                            type="button"
-                                            className="btn-close"
-                                            aria-label="Close"
-                                            onClick={() => setActiveActivity(null)}
-                                        />
-                                    </div>
-
-                                    <div className="modal-body">
-                                        <div className="small text-secondary mb-2">
-                                            {activeActivity.phase === "night" ? "Noche" : "Día"} ·{" "}
-                                            {activeActivity.duration || 5} min · {activeActivity.branch}
-                                        </div>
-                                        <p className="mb-0">{activeActivity.description}</p>
-
-                                        <div className="mt-3 p-3 border rounded bg-dark">
-                                            <div className="fw-semibold mb-2">Ejercicio</div>
-
-                                            <ActivityRunner
-                                                activity={activeActivity}
-                                                onSaved={async () => {
-                                                    // 1) guardar runner (ya hecho dentro), 2) completar actividad (puntos + espejo)
-                                                    await handleComplete(activeActivity);
-                                                    setActiveActivity(null);
-                                                }}
-                                            />
-                                        </div>
-
-                                    </div>
-
-                                    <div className="modal-footer">
-                                        <button
-                                            type="button"
-                                            className="btn btn-outline-secondary"
-                                            onClick={() => setActiveActivity(null)}
-                                        >
-                                            Cerrar
-                                        </button>
-
-                                        {activeActivity.run !== "emotion_checkin" && (
-                                            <button
-                                                type="button"
-                                                className="btn btn-primary"
-                                                onClick={async () => {
-                                                    await handleComplete(activeActivity);
-                                                    setActiveActivity(null);
-                                                }}
-                                            >
-                                                Finalizar y guardar
-                                            </button>
-                                        )}
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-
-                        <div className="modal-backdrop show" />
-                    </>
+                    <ActivityModal
+                        activity={activeActivity}
+                        onClose={() => setActiveActivity(null)}
+                        onComplete={async () => {
+                            await handleComplete(activeActivity);
+                            setActiveActivity(null);
+                        }}
+                        onSaved={async () => {
+                            await handleComplete(activeActivity);
+                            setActiveActivity(null);
+                        }}
+                    />
                 )}
             </div>
         </div>

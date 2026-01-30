@@ -32,7 +32,7 @@ export const activitiesCatalog = {
     {
       id: "d-rec-breath-5",
       phase: "day",
-      title: "Respiración guiada (5 min)",
+      title: "Respiración guiada",
       branch: "Regulación",
       branchBadge: "text-bg-primary",
       duration: 5,
@@ -40,7 +40,43 @@ export const activitiesCatalog = {
       reason: "Ideal para empezar el día con claridad.",
       image: IMG_DAY_HERO,
       priority: true,
-      run: "breathing_guided",
+      run: {
+        type: "breathing_guided",
+
+        // Preset elegido por defecto
+        defaultPreset: "standard", // quick | standard | deep
+
+        // Presets de duración (2/3/5 min) con patrón base 4-6
+        presets: {
+          quick: {
+            label: "Rápido (2 min)",
+            totalSeconds: 120,
+            pattern: "calm_4_2_6",
+          },
+          standard: {
+            label: "Estándar (3 min)",
+            totalSeconds: 180,
+            pattern: "calm_4_2_6",
+          },
+          deep: {
+            label: "Profundo (5 min)",
+            totalSeconds: 300,
+            pattern: "calm_4_2_6",
+          },
+        },
+
+        // Selector secundario de patrón (opcional en UI del runner)
+        patterns: {
+          calm_4_2_6: { label: "Calma (4–2–6)", inhale: 4, hold: 2, exhale: 6 },
+          box_4_4_4_4: {
+            label: "Box (4–4–4–4)",
+            inhale: 4,
+            hold: 4,
+            exhale: 4,
+            hold2: 4,
+          },
+        },
+      },
     },
     {
       id: "d-soma-check",
@@ -73,12 +109,47 @@ export const activitiesCatalog = {
       duration: 4,
       description: "Ejercicio breve para reducir rumia y ansiedad.",
       image: IMG_DAY_3,
-      run: "thought_cut",
+      run: {
+        type: "thought_cut",
+        variant: "grounding_54321",
+        steps: [
+          {
+            key: "see",
+            label: "5 cosas que ves",
+            count: 5,
+            placeholder: "Ej: una lámpara, la pantalla, una planta…",
+          },
+          {
+            key: "feel",
+            label: "4 cosas que sientes",
+            count: 4,
+            placeholder: "Ej: el aire en la piel, el peso del cuerpo…",
+          },
+          {
+            key: "hear",
+            label: "3 cosas que oyes",
+            count: 3,
+            placeholder: "Ej: tráfico, ventilador, voces…",
+          },
+          {
+            key: "smell",
+            label: "2 cosas que hueles",
+            count: 2,
+            placeholder: "Ej: café, jabón, aire…",
+          },
+          {
+            key: "taste",
+            label: "1 cosa que saboreas",
+            count: 1,
+            placeholder: "Ej: menta, agua, sabor residual…",
+          },
+        ],
+      },
     },
     {
       id: "d-goals-review",
       phase: "day",
-      title: "Revisar objetivos (2 min)",
+      title: "Revisar objetivos",
       branch: "Objetivos",
       branchBadge: "text-bg-warning",
       duration: 2,
@@ -118,7 +189,7 @@ export const activitiesCatalog = {
     {
       id: "n-rec-emotion-check",
       phase: "night",
-      title: "Identifica tu emoción (2 min)",
+      title: "Identifica tu emoción",
       branch: "Emoción",
       branchBadge: "text-bg-light border",
       duration: 2,
