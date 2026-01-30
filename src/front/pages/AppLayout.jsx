@@ -19,8 +19,24 @@ export const AppLayout = () => {
 	}, [navigate]);
 
 	// plays default background music
+	const fetchMusic = async () => {
+		const res = await fetch(
+			`${import.meta.env.VITE_BACKEND_URL}/api/music/emotion-music`
+		);
+		const data = await res.json();
+		console.log("Fetched music:", data);
+		if (data.url_music) {
+			setMusicUrl(data.url_music);
+		} else {
+			console.log("No url_music in response");
+		}
+	};
 
 	useEffect(() => {
+		fetchMusic();
+	}, []);
+
+	/* useEffect(() => {
 		fetch(`${import.meta.env.VITE_BACKEND_URL}/api/music/default`)
 			.then(r => r.json())
 			.then(data => {
@@ -32,7 +48,7 @@ export const AppLayout = () => {
 				}
 			})
 			.catch(err => console.error("Error fetching music:", err));
-	}, []);
+	}, []); */
 
 	const enableSound = () => setSoundEnabled(true);
 
@@ -41,7 +57,7 @@ export const AppLayout = () => {
 	}, [musicUrl, soundEnabled]);
 
 	return (
-		<MusicPlayerContext.Provider value={{ setMusicUrl, enableSound }}>
+		<MusicPlayerContext.Provider value={{ fetchMusic, enableSound }}>
 			{soundEnabled && musicUrl && <MusicPlayer url={musicUrl} />}
 			<AppNavbar />
 			<Outlet />

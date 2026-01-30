@@ -1,4 +1,6 @@
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useMemo, useState, useContext } from "react";
+import { MusicPlayerContext } from "../contexts/MusicPlayerContext.jsx";
+
 
 const getBackendUrl = () => (import.meta.env.VITE_BACKEND_URL || "").replace(/\/$/, "");
 
@@ -53,6 +55,8 @@ const EmotionCheckinRunner = ({ onSaved }) => {
     const [intensity, setIntensity] = useState(5); // 1..10
     const [note, setNote] = useState("");
     const [saving, setSaving] = useState(false);
+
+    const { fetchMusic } = useContext(MusicPlayerContext); // para actualizar música al guardar checkin
 
     useEffect(() => {
         const load = async () => {
@@ -122,6 +126,7 @@ const EmotionCheckinRunner = ({ onSaved }) => {
             if (!res.ok) throw new Error(data?.msg || "No se pudo guardar el check-in");
 
             onSaved?.(data);
+            fetchMusic(); // actualiza la música de fondo según emoción registrada
         } catch (e) {
             setErr(e?.message || "Error guardando check-in");
         } finally {

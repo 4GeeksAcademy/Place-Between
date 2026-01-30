@@ -226,7 +226,8 @@ def mirror_today():
             cat_name = c.activity.category.name if c.activity and c.activity.category else "General"
             pts = int(c.points_awarded or 0)
 
-            points_by_category[cat_name] = points_by_category.get(cat_name, 0) + pts
+            points_by_category[cat_name] = points_by_category.get(
+                cat_name, 0) + pts
 
             activities.append({
                 "id": c.activity.id,
@@ -238,10 +239,8 @@ def mirror_today():
                 "completed_at": c.completed_at.isoformat() + "Z"
             })
 
-
     # Orden cronológico (para sendero y lista)
     activities.sort(key=lambda x: x.get("completed_at") or "")
-    
 
     # Latest emotion checkin across sessions
     latest_checkin = (
@@ -276,14 +275,14 @@ def mirror_today():
 # READ-ONLY LISTS (safe)
 # -------------------------
 @api.route("/emotions", methods=["GET"])
-#@jwt_required()
+# @jwt_required()
 def get_all_emotions():
     emotions = Emotion.query.all()
     return jsonify([e.serialize() for e in emotions]), 200
 
 
 @api.route("/activities", methods=["GET"])
-#@jwt_required()
+# @jwt_required()
 def get_all_activities():
     activities = Activity.query.filter_by(is_active=True).all()
     return jsonify([a.serialize() for a in activities]), 200
@@ -646,9 +645,10 @@ def dev_deactivate_activity():
 
 # ... other session/emotion/activity completion routes TODO ...
 
-######## GOALS y REMINDERS
+# GOALS y REMINDERS
 
-#### POST GOAL 
+# POST GOAL
+
 
 @api.route("/users/<int:user_id>/goals", methods=["POST"])
 def create_goal(user_id):
@@ -657,7 +657,8 @@ def create_goal(user_id):
     db.session.commit()
     return jsonify(goal.serialize()), 201
 
-#### POST DAILY SESSION GOALS
+# POST DAILY SESSION GOALS
+
 
 @api.route("/sessions/<int:session_id>/goals/<int:goal_id>", methods=["POST"])
 def plan_goal(session_id):
@@ -671,7 +672,8 @@ def plan_goal(session_id):
     db.session.commit()
     return jsonify(dailyGoal.serialize()), 201
 
-#### POST  GOAL PROGRESS
+# POST  GOAL PROGRESS
+
 
 @api.route("/sessions/<int:session_id>/goals/<int:goal_id>/progress", methods=["POST"])
 def goal_progress(session_id, goal_id):
@@ -698,11 +700,11 @@ def goal_progress(session_id, goal_id):
     }), 201
 
 
-#### REMINDERS (LOOPS)
+# REMINDERS (LOOPS)
 
-#### instalar pytz para asegurar hora local del usuario dependiendo de su ubicación 
-#### pip install pytz
-#### IMPORTANTE !!!  ver services.py para función de envío de email
+# instalar pytz para asegurar hora local del usuario dependiendo de su ubicación
+# pip install pytz
+# IMPORTANTE !!!  ver services.py para función de envío de email
 
 @api.route("/internal_place/reminders/send", methods=["POST"])
 def send_reminders():
@@ -715,14 +717,14 @@ def send_reminders():
         user_now = now_utc.astimezone(pytz.timezone(user.timezone))
         should_send = False
 
-        # daily filter 
+        # daily filter
         if reminder.days_of_week != "daily":
             allowed = reminder.days_of_week.split(",")
             today = user_now.strftime("%a").lower()[:3]
             if today not in allowed:
                 continue
 
-        # FIXED TIME MODE 
+        # FIXED TIME MODE
         if reminder.mode == "fixed":
             if reminder.local_time:
                 already_sent_today = (
@@ -737,7 +739,7 @@ def send_reminders():
                     ):
                         should_send = True
 
-        # INACTIVITY 
+        # INACTIVITY
         elif reminder.mode == "inactivity":
             if reminder.inactive_after_minutes:
                 if not user.last_activity_at:
@@ -758,27 +760,83 @@ def send_reminders():
     return jsonify({"sent": sent}), 200
 
 
-### GET EMOTION MUSIC AND DEFAULT TRACK
+# GET EMOTION MUSIC AND DEFAULT TRACK
 
 DEFAULT_TRACK = "https://soundcloud.com/sant_iagoo/sets/default-track"
 
+EMOTION_PLAYLISTS = {
+    "alegria": {
+        "day": "https://soundcloud.com/sant_iagoo/sets/focus",
+        "night": "https://soundcloud.com/sant_iagoo/sets/luz-suave"
+    },
+    "tristeza": {
+        "day": "https://soundcloud.com/sant_iagoo/sets/focus",
+        "night": "https://soundcloud.com/sant_iagoo/sets/contencion"
+    },
+    "ira": {
+        "day": "https://soundcloud.com/sant_iagoo/sets/descarga_controlada",
+        "night": "https://soundcloud.com/sant_iagoo/sets/contencion"
+    },
+    "miedo/ansiedad": {
+        "day": "https://soundcloud.com/sant_iagoo/sets/descarga_controlada",
+        "night": "https://soundcloud.com/sant_iagoo/sets/contencion"
+    }, 
+    "ansiedad": {
+        "day": "https://soundcloud.com/sant_iagoo/sets/descarga_controlada",
+        "night": "https://soundcloud.com/sant_iagoo/sets/contencion"
+    }, 
+    "miedo": {
+        "day": "https://soundcloud.com/sant_iagoo/sets/descarga_controlada",
+        "night": "https://soundcloud.com/sant_iagoo/sets/contencion"
+    }, 
+    "default": {
+        "day": "https://soundcloud.com/sant_iagoo/sets/default-track",
+        "night": "https://soundcloud.com/sant_iagoo/sets/default-track"
+    }
+}
+
+
 @api.route("/music/emotion-music", methods=["GET"])
-def get_session_emotion_music(daily_session_id):
+def get_session_emotion_music():
+    daily_session_id = request.args.get("daily_session_id")
+
+    if not daily_session_id:
+        return jsonify({"msg": "daily_session_id requerido"}), 400
+
+    session = DailySession.query.get(daily_session_id)
+    if not session:
+        return jsonify({"msg": "Session no encontrada"}), 404
+
+    # session enum define el tipo: day o night 
+
+    phase = "day" if session.session_type == SessionType.day else "night"
+
     checkin = (
-        EmotionCheckin.query.filter_by(daily_session_id=daily_session_id)
+        EmotionCheckin.query
+        .filter_by(daily_session_id=daily_session_id)
         .order_by(EmotionCheckin.created_at.desc())
         .first()
     )
+
     if not checkin or not checkin.emotion:
         return jsonify({
             "emotion": None,
-            "url_music": DEFAULT_TRACK
+            "url_music": EMOTION_PLAYLISTS["default"][phase]
         }), 200
 
+    emotion_name = checkin.emotion.name.lower()
+
+    if emotion_name in EMOTION_PLAYLISTS:
+        url_music = EMOTION_PLAYLISTS[emotion_name][phase]
+    else:
+        url_music = EMOTION_PLAYLISTS["default"][phase]
+
     return jsonify({
-        "emotion": checkin.emotion.name,
-        "url_music": checkin.emotion.url_music or DEFAULT_TRACK
+        "emotion": emotion_name,
+        "session_type": phase,
+        "url_music": url_music
     }), 200
+
 
 @api.route("/music/default", methods=["GET"])
 def get_default_music():
