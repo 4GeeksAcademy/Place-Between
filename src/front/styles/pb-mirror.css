@@ -383,7 +383,7 @@
 }
 
 /* DAY: cards un poco más sólidas para legibilidad */
-.pb-mirror-day .pb-card-soft {
+.pb-mirror-day .pb-mirror-day .pb-card-soft {
   background: rgba(255, 255, 255, 0.96);
   border: 1px solid rgba(20, 24, 36, 0.12);
   box-shadow: 0 14px 34px rgba(15, 23, 42, 0.10);
@@ -745,12 +745,7 @@
 
 
 /* Night: KPI sigue legible */
-.pb-mirror-night .pb-kpi {
-  background: rgba(255, 255, 255, 0.06);
-  border-color: rgba(255, 255, 255, 0.12);
-}
-
-/* FIX: tiles legibles en NIGHT */
+.pb-mirror-night /* FIX: tiles legibles en NIGHT */
 .pb-mirror-night .pb-tile-title,
 .pb-mirror-night .pb-tile-sub {
   color: rgba(245, 247, 255, 0.92) !important;
@@ -826,10 +821,15 @@
    Mirror — Range visuals
 ========================= */
 
+/* =========================
+   Mirror — Range visuals
+========================= */
+
 .pb-mirror-container--wide {
-  max-width: 1180px; /* wide pero sin estirar infinito */
+  max-width: 1120px; /* wide pero sin estirar infinito */
 }
 
+/* KPI cards inside resumen */
 .pb-kpi {
   border-radius: 16px;
   border: 1px solid rgba(255,255,255,0.08);
@@ -837,21 +837,30 @@
   padding: 14px;
 }
 
+/* Texto pequeño bajo KPIs */
 .pb-metric-hint {
   font-size: 12px;
   color: rgba(255,255,255,0.65);
 }
 
+/* Pills (Total + categorías) */
+.pb-metric-pills {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  justify-content: flex-end;
+}
+
 .pb-pill {
   display: inline-flex;
-  align-items: baseline;
+  align-items: center;
   gap: 8px;
   border-radius: 999px;
   border: 1px solid rgba(255,255,255,0.12);
   background: rgba(255,255,255,0.03);
   color: inherit;
-  padding: 8px 12px;
-  font-size: 12px;
+  padding: 6px 10px;
+  font-size: 13px;
   line-height: 1;
 }
 
@@ -860,494 +869,17 @@
   background: rgba(255,255,255,0.05);
 }
 
-.pb-pill--active {
-  outline: 2px solid rgba(13,110,253,0.55);
-  border-color: rgba(13,110,253,0.55);
-}
-
-.pb-pill--wide {
-  justify-content: space-between;
-  width: 100%;
-}
-
-.pb-pill-label {
-  max-width: 180px;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.pb-pill-sub {
-  opacity: 0.75;
-  font-variant-numeric: tabular-nums;
-}
-
-.pb-pills-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
-  gap: 10px;
-}
-
-/* -------- Line chart -------- */
-
-.pb-linechart-wrap {
-  border-radius: 18px;
-  border: 1px solid rgba(255,255,255,0.10);
-  background: rgba(0,0,0,0.12);
-  padding: 14px 14px 10px 14px;
-}
-
-.pb-linechart {
-  width: 100%;
-  height: 300px; /* llena el espacio y evita “vacío” */
-  display: block;
-}
-
-.pb-linechart-axis {
-  stroke: rgba(255,255,255,0.18);
-  stroke-width: 1;
-}
-
-.pb-linechart-grid {
-  stroke: rgba(255,255,255,0.08);
-  stroke-width: 1;
-}
-
-.pb-linechart-path {
-  fill: none;
-  stroke: rgba(13,110,253,0.85);
-  stroke-width: 2.5;
-}
-
-.pb-linechart-dot {
-  fill: rgba(13,110,253,0.95);
-  stroke: rgba(255,255,255,0.4);
-  stroke-width: 1;
-}
-
-.pb-linechart-label {
-  fill: rgba(255,255,255,0.65);
-  font-size: 11px;
-}
-
-.pb-linechart-value {
-  fill: rgba(255,255,255,0.85);
-  font-size: 11px;
-  font-variant-numeric: tabular-nums;
-}
-
-/* -------- Categories stackbar -------- */
-
-.pb-stackbar {
-  height: 14px;
-  border-radius: 999px;
-  overflow: hidden;
-  display: flex;
-  border: 1px solid rgba(255,255,255,0.10);
-  background: rgba(255,255,255,0.03);
-}
-
-.pb-stackbar-seg {
-  height: 100%;
-  opacity: 0.9;
-}
-
-/* -------- Emotions layout -------- */
-
-.pb-emotions-layout {
-  display: grid;
-  grid-template-columns: 1fr 230px;
-  gap: 14px;
-  align-items: start;
-}
-
-@media (max-width: 992px) {
-  .pb-emotions-layout {
-    grid-template-columns: 1fr;
-  }
-}
-
-.pb-emotion-tiles {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
-  gap: 10px;
-}
-
-.pb-emotion-tile {
-  text-align: left;
-  border-radius: 16px;
-  border: 1px solid rgba(255,255,255,0.10);
-  background: rgba(255,255,255,0.03);
-  padding: 12px;
-  color: inherit;
-}
-
-.pb-emotion-tile:hover {
-  border-color: rgba(255,255,255,0.22);
-}
-
-.pb-emotion-tile--active {
-  outline: 2px solid rgba(13,110,253,0.55);
-}
-
-.pb-emotion-name {
-  font-weight: 700;
-  margin-bottom: 4px;
-}
-
-.pb-emotion-sub {
-  font-size: 12px;
-  opacity: 0.75;
-  font-variant-numeric: tabular-nums;
-}
-
-.pb-pie-wrap {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 10px;
-}
-
-.pb-pie {
-  width: 210px;
-  height: 210px; /* más grande */
-  display: block;
-  filter: drop-shadow(0 10px 26px rgba(0,0,0,0.35));
-}
-
-.pb-pie-slice {
-  cursor: pointer;
-  opacity: 0.95;
-}
-
-.pb-pie-slice:hover {
-  opacity: 1;
-  filter: brightness(1.08);
-}
-
-.pb-pie-slice--active {
-  filter: brightness(1.1);
-  opacity: 1;
-}
-
-.pb-pie-center {
-  fill: rgba(255,255,255,0.35);
-}
-
-.pb-pie-legend {
-  width: 100%;
-  display: grid;
-  grid-template-columns: 1fr;
-  gap: 6px;
-}
-
-.pb-legend-row {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  font-size: 12px;
-  opacity: 0.85;
-}
-
-.pb-legend-dot {
-  width: 10px;
-  height: 10px;
-  border-radius: 999px;
-  display: inline-block;
-}
-
-.pb-legend-label {
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
-/* -------- Drilldown -------- */
-
-.pb-drill {
-  max-height: 320px;
-  overflow: auto;
-  border-radius: 14px;
-  border: 1px solid rgba(255,255,255,0.10);
-  background: rgba(255,255,255,0.03);
-}
-
-.pb-drill-item {
-  display: grid;
-  grid-template-columns: 120px 1fr;
-  gap: 12px;
-  padding: 12px;
-  border-bottom: 1px solid rgba(255,255,255,0.06);
-}
-
-.pb-drill-item:last-child {
-  border-bottom: none;
-}
-
-.pb-drill-date {
-  font-weight: 700;
-  opacity: 0.9;
-}
-
-.pb-drill-note {
-  margin-top: 6px;
-  opacity: 0.9;
-}
-
-.pb-chip {
-  display: inline-flex;
-  align-items: center;
-  border-radius: 999px;
-  padding: 2px 10px;
-  background: rgba(255,255,255,0.08);
-  border: 1px solid rgba(255,255,255,0.10);
-  font-size: 12px;
-  font-weight: 700;
-}
-
-/* =========================
-   Category color classes (si no existen ya)
-========================= */
-
-.pb-cat-objetivos { --pb-hue: 32; } /* opcional */
-
-
-/* =========================
-   MIRROR: VISUAL LAYER (B)
-   - Emotion pie gradient + active glow
-   - Line chart polish
-   - Category horizontal bars
-========================= */
-
-:root{
-  --pb-blue: #2f86ff;
-
-  --pb-emocion: #7a5cff;
-  --pb-espejo: #9b5cff;
-  --pb-aprendizaje: #4da3ff;
-  --pb-fisico: #3bd180;
-  --pb-regulacion: #b06bff;
-  --pb-objetivos: #ffb84d;
-
-  --pb-alegria: #ffd35a;
-  --pb-miedo: #5ee27a;
-  --pb-tristeza: #66b3ff;
-  --pb-ira: #ff5f6a;
-  --pb-em-default: #8aa0b8;
-}
-
-/* Line chart */
-.pb-lineChartWrap { width: 100%; }
-.pb-lineChart { width: 100%; height: auto; display: block; }
-.pb-gridLine { stroke: rgba(255,255,255,0.08); stroke-width: 1; }
-.pb-gridText { fill: rgba(255,255,255,0.50); font-size: 12px; }
-.pb-xLabel { fill: rgba(255,255,255,0.70); font-size: 12px; cursor: pointer; }
-.pb-rangeEdge { fill: rgba(255,255,255,0.45); font-size: 12px; }
-.pb-linePath { filter: drop-shadow(0 0 12px rgba(47,134,255,0.12)); }
-.pb-lineGlow { opacity: 0.9; }
-.pb-dot { cursor: pointer; stroke: rgba(255,255,255,0.35); stroke-width: 2; }
-.pb-dotLabel { fill: rgba(255,255,255,0.8); font-size: 12px; font-weight: 700; }
-
-/* Emotion grid */
-.pb-emotionsGrid {
-  display: grid;
-  grid-template-columns: 1fr 280px;
-  gap: 14px;
-}
-@media (max-width: 991px){
-  .pb-emotionsGrid { grid-template-columns: 1fr; }
-}
-
-.pb-emRow{
-  width: 100%;
-  text-align: left;
-  border: 1px solid rgba(255,255,255,0.08);
-  background: rgba(255,255,255,0.04);
-  border-radius: 14px;
-  padding: 10px 12px;
-  color: rgba(255,255,255,0.92);
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 10px;
-}
-.pb-emRow:hover{ border-color: rgba(255,255,255,0.14); }
-.pb-emRow.is-active{
-  border-color: rgba(47,134,255,0.55);
-  box-shadow: 0 0 0 2px rgba(47,134,255,0.18), 0 0 20px rgba(47,134,255,0.18);
-}
-
-.pb-emName{ font-weight: 700; }
-.pb-emMeta{
-  display: flex;
-  gap: 10px;
-  font-size: 12px;
-  color: rgba(255,255,255,0.68);
-}
-
-/* Emotion pie */
-.pb-emPieWrap{
-  width: 280px;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: 6px;
-}
-.pb-emPie{ max-width: 100%; height: auto; }
-.pb-emPieHint{ color: rgba(255,255,255,0.45); font-size: 12px; }
-.pb-emSeg{
-  cursor: pointer;
-  transition: filter 160ms ease, opacity 160ms ease, stroke-width 160ms ease;
-}
-.pb-emSeg.is-active{
-  opacity: 1;
-}
-
-/* Category horizontal bars */
-.pb-catBars{
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-}
-.pb-catBarRow{
-  width: 100%;
-  text-align: left;
-  border: 1px solid rgba(255,255,255,0.08);
-  background: rgba(255,255,255,0.04);
-  border-radius: 14px;
-  padding: 10px 12px;
-  color: rgba(255,255,255,0.92);
-}
-.pb-catBarRow:hover{ border-color: rgba(255,255,255,0.14); }
-.pb-catBarRow.is-active{
-  border-color: rgba(47,134,255,0.55);
-  box-shadow: 0 0 0 2px rgba(47,134,255,0.18), 0 0 20px rgba(47,134,255,0.18);
-}
-.pb-catBarTop{
-  display: flex;
-  align-items: baseline;
-  justify-content: space-between;
-  gap: 10px;
-  margin-bottom: 8px;
-}
-.pb-catBarName{ font-weight: 700; }
-.pb-catBarPts{ color: rgba(255,255,255,0.70); font-size: 12px; }
-
-.pb-catBarTrack{
-  width: 100%;
-  height: 10px;
-  border-radius: 999px;
-  background: rgba(255,255,255,0.08);
-  overflow: hidden;
-}
-.pb-catBarFill{
-  height: 100%;
-  border-radius: 999px;
-  background: var(--pb-blue);
-}
-
-/* Map classes -> bar color */
-.pb-cat-emocion .pb-catBarFill{ background: var(--pb-emocion); }
-.pb-cat-espejo .pb-catBarFill{ background: var(--pb-espejo); }
-.pb-cat-aprendizaje .pb-catBarFill{ background: var(--pb-aprendizaje); }
-.pb-cat-fisico .pb-catBarFill{ background: var(--pb-fisico); }
-.pb-cat-regulacion .pb-catBarFill{ background: var(--pb-regulacion); }
-.pb-cat-objetivos .pb-catBarFill{ background: var(--pb-objetivos); }
-
-/* Technical day drilldown */
-.pb-dayRow{
-  border: 1px solid rgba(255,255,255,0.08);
-  border-radius: 14px;
-  overflow: hidden;
-  background: rgba(255,255,255,0.03);
-}
-.pb-dayRowBtn{
-  width: 100%;
-  background: transparent;
-  border: 0;
-  color: inherit;
-  padding: 12px 14px;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 14px;
-  text-align: left;
-}
-.pb-dayRowBtn:hover{ background: rgba(255,255,255,0.03); }
-.pb-dayRowPanel{
-  border-top: 1px solid rgba(255,255,255,0.08);
-  padding: 12px 14px;
-  background: rgba(0,0,0,0.14);
-}
-
-.pb-miniTitle{
-  font-weight: 700;
-  margin-bottom: 8px;
-}
-.pb-miniGrid{
-  display: grid;
-  grid-template-columns: 1fr;
-  gap: 8px;
-}
-.pb-miniChip{
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 10px;
-  padding: 8px 10px;
-  border-radius: 12px;
-  background: rgba(255,255,255,0.04);
-  border: 1px solid rgba(255,255,255,0.08);
-}
-.pb-miniChipName{ font-weight: 600; }
-.pb-miniChipVal{ color: rgba(255,255,255,0.72); font-size: 12px; }
-
-
-/* =========================
-   MIRROR — RANGE UI (add-on)
-   Pegar al final de index.css
-========================= */
-
-/* contenedor ancho sólo para 7/30 */
-.pb-mirror-container--wide {
-  max-width: 1120px;
-}
-
-/* pills métricas */
-.pb-metric-pills {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-  justify-content: flex-end;
-}
-.pb-pill {
-  border: 1px solid rgba(255,255,255,.15);
-  background: rgba(255,255,255,.04);
-  color: inherit;
-  border-radius: 999px;
-  padding: 6px 10px;
-  font-size: 13px;
-  line-height: 1;
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-}
-.pb-pill:hover {
-  background: rgba(255,255,255,.06);
-}
 .pb-pill-active {
-  border-color: rgba(0,150,255,.55);
-  box-shadow: 0 0 0 2px rgba(0,150,255,.15) inset;
+  border-color: rgba(13,110,253,0.55);
+  box-shadow: 0 0 0 2px rgba(13,110,253,0.15) inset;
 }
+
 .pb-pill-num {
   opacity: .85;
   font-variant-numeric: tabular-nums;
 }
 
-/* line chart */
-/* =========================
-   Mirror — Line chart (recorrido)
+/*Mirror — Line chart (recorrido)
    ========================= */
 
 /* Base (pensado para NIGHT por defecto, pero con tamaños ya correctos) */
@@ -1716,7 +1248,7 @@
 }
 
 /* Reporte técnico — DAY */
-.pb-mirror-day .pb-tech-day {
+.pb-mirror-day .pb-mirror-day .pb-tech-day {
   background: rgba(255, 255, 255, 0.92);
   border: 1px solid rgba(20, 24, 36, 0.12);
 }
@@ -1734,3 +1266,53 @@
   font-variant-numeric: tabular-nums;
 }
 
+/* ======================================================
+   MIRROR — DAY: elevar superficies 
+   ====================================================== */
+
+.pb-mirror-day {
+  /* fondo general un poco menos blanco para que existan las cards */
+  background: linear-gradient(180deg, rgba(248,250,255,1) 0%, rgba(246,247,252,1) 60%, rgba(244,245,250,1) 100%);
+}
+
+/* Cards principales (las grandes de Mirror) */
+.pb-mirror-day .pb-card-soft {
+  background: rgba(255, 255, 255, 0.92);
+  border: 1px solid rgba(20, 24, 36, 0.10);
+  box-shadow:
+    0 10px 24px rgba(15, 23, 42, 0.08),
+    0 2px 6px rgba(15, 23, 42, 0.05);
+}
+
+/* “Superficie interna” (bloques dentro de cards) */
+.pb-mirror-day .pb-linechart,
+.pb-mirror-day .pb-tech-item,
+.pb-mirror-day .pb-em-row,
+.pb-mirror-day .pb-hbar-track {
+  background: rgba(255, 255, 255, 0.82);
+  border: 1px solid rgba(20, 24, 36, 0.08);
+  box-shadow: 0 6px 14px rgba(15, 23, 42, 0.05);
+}
+
+/* Hover/afordancia (sensación de seleccionable) */
+.pb-mirror-day .pb-em-row:hover,
+.pb-mirror-day .pb-tech-day:hover,
+.pb-mirror-day .pb-pill:hover {
+  transform: translateY(-1px);
+  box-shadow:
+    0 12px 26px rgba(15, 23, 42, 0.10),
+    0 3px 8px rgba(15, 23, 42, 0.06);
+}
+
+/* Reporte técnico: bloque day con separación clara */
+.pb-mirror-day .pb-tech-day {
+  background: rgba(255, 255, 255, 0.90);
+  border: 1px solid rgba(20, 24, 36, 0.10);
+  box-shadow: 0 10px 22px rgba(15, 23, 42, 0.07);
+}
+
+/* Texto secundario day: un poco más contraste */
+.pb-mirror-day .text-muted,
+.pb-mirror-day small {
+  color: rgba(58, 64, 86, 0.82) !important;
+}
