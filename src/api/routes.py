@@ -297,8 +297,25 @@ def build_mirror_range_payload(user_id: int, start_date, end_date):
     days_list = list(days_map.values())
 
     # Consistencia: día con >= 1 "principal" (points_awarded >= 10)
-    consistency_flags = [d["principal_count"] > 0 for d in days_list]
-    streak_cur, streak_best = _calc_streak(consistency_flags)
+    # IMPORTANTE: "racha actual" debe medirse hasta HOY, no hasta el final del rango
+    today_utc = datetime.now(timezone.utc).date()
+    cutoff_date = min(end_date, today_utc)
+
+    def _day_leq_cutoff(day_obj):
+        try:
+            d = date.fromisoformat(day_obj["date"])
+            return d <= cutoff_date
+        except Exception:
+            # Si por algún motivo falla el parseo, no bloqueamos el streak
+            return True
+
+    consistency_flags_all = [d["principal_count"] > 0 for d in days_list]
+    consistency_flags_upto_today = [d["principal_count"] > 0 for d in days_list if _day_leq_cutoff(d)]
+
+    # Best streak puede calcularse con todo el rango (da igual que haya futuros a False, no reduce el máximo),
+    # pero current streak debe excluir días futuros.
+    _, streak_best = _calc_streak(consistency_flags_all)
+    streak_cur, _ = _calc_streak(consistency_flags_upto_today)
 
     totals = {
         "points_total": sum(int(d["points_total"] or 0) for d in days_list),

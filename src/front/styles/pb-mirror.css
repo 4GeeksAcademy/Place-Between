@@ -513,7 +513,7 @@
   background: rgba(255, 255, 255, 0.78);
 }
 
-/* Sendero: conectores visibles en DAY (en night funcionan, en day se pierden) */
+/* Sendero: conectores visibles en DAY */
 .pb-mirror-day .pb-trail-connector {
   background: rgba(20, 24, 36, 0.22);
 }
@@ -524,7 +524,7 @@
   box-shadow: 0 0 12px rgba(0, 0, 0, 0.1);
 }
 
-/* Sendero: destino final en DAY (para que no sea un punto blanco sin contexto) */
+/* Sendero: destino final en DAY */
 .pb-mirror-day .pb-trail-destination {
   background: rgba(12, 14, 20, 0.25);
   box-shadow: 0 0 14px rgba(0, 0, 0, 0.1);
@@ -630,7 +630,7 @@
   z-index: 1;
 }
 
-/* Emoción -> color aura (RGB). Ajusta a tu gusto */
+/* Emoción -> color aura (RGB). */
 .pb-e-alegria {
   --pb-aura: 255, 196, 68;
 } /* dorado */
@@ -731,7 +731,7 @@
   color: #f3f5ff !important;
 }
 
-/* Importante: muchos navegadores NO heredan color en <option> */
+
 .pb-today-night .modal-content .form-select option {
   background: #0f1630; /* mismo tono que modal */
   color: #f3f5ff;
@@ -821,10 +821,6 @@
    Mirror — Range visuals
 ========================= */
 
-/* =========================
-   Mirror — Range visuals
-========================= */
-
 .pb-mirror-container--wide {
   max-width: 1120px; /* wide pero sin estirar infinito */
 }
@@ -882,7 +878,7 @@
 /*Mirror — Line chart (recorrido)
    ========================= */
 
-/* Base (pensado para NIGHT por defecto, pero con tamaños ya correctos) */
+/* Base (pensado para NIGHT por defecto) */
 .pb-linechart {
   width: 100%;
   height: 300px;
@@ -920,7 +916,7 @@
   cursor: pointer;
 }
 
-/* 👇 FIX: tamaños coherentes (evita que el número se monte sobre el punto) */
+/* Evita que el número se monte sobre el punto */
 .pb-linechart-value {
   fill: rgba(255,255,255,.92);
   font-size: 13px;           /* antes 22px */
@@ -942,7 +938,7 @@
 }
 
 /* =========================
-   DAY overrides (lo que te faltaba)
+   DAY overrides
    ========================= */
 
 .pb-mirror-day .pb-linechart {
@@ -975,7 +971,6 @@
 .pb-mirror-day .pb-linechart-xlabel {
   fill: rgba(20,24,36,.72);
 }
-
 
 
 /* color del line chart por categoría (punto + línea) */
