@@ -2,7 +2,7 @@ from flask_sqlalchemy import SQLAlchemy
 from sqlalchemy import String, Boolean, Integer, Time, DateTime, Date, ForeignKey, UniqueConstraint, Index, CheckConstraint
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 import enum
-from datetime import datetime, time
+from datetime import datetime, date, time, timezone
 from sqlalchemy import Enum as SAEnum
 from werkzeug.security import generate_password_hash, check_password_hash
 
@@ -10,6 +10,7 @@ from werkzeug.security import generate_password_hash, check_password_hash
 db = SQLAlchemy()
 
 # ENUMS
+
 
 class SessionType(enum.Enum):
     day = "day"
@@ -55,27 +56,38 @@ class User(db.Model):
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True)
 
-    email: Mapped[str] = mapped_column(String(120), unique=True, nullable=False, index=True)
+    email: Mapped[str] = mapped_column(
+        String(120), unique=True, nullable=False, index=True)
     password_hash: Mapped[str] = mapped_column(String(255), nullable=False)
-    username: Mapped[str] = mapped_column(String(80), unique=True, nullable=False, index=True)
+    username: Mapped[str] = mapped_column(
+        String(80), unique=True, nullable=False, index=True)
 
     # Zona horaria IANA: "Europe/Lisbon", "America/Lima", etc.
-    timezone: Mapped[str] = mapped_column(String(64), nullable=False, default="UTC")
+    timezone: Mapped[str] = mapped_column(
+        String(64), nullable=False, default="UTC")
 
     # Reglas por usuario:
     # - Día empieza 06:00
     # - Noche empieza 19:00
-    day_start_time: Mapped[time] = mapped_column(Time, nullable=False, default=time(6, 0))
-    night_start_time: Mapped[time] = mapped_column(Time, nullable=False, default=time(19, 0))
+    day_start_time: Mapped[time] = mapped_column(
+        Time, nullable=False, default=time(6, 0))
+    night_start_time: Mapped[time] = mapped_column(
+        Time, nullable=False, default=time(19, 0))
 
-    is_email_verified: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
-    email_verified_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
+    is_email_verified: Mapped[bool] = mapped_column(
+        Boolean, nullable=False, default=False)
+    email_verified_at: Mapped[datetime | None] = mapped_column(
+        DateTime, nullable=True)
 
-    created_at: Mapped[datetime] = mapped_column(DateTime, nullable=False, default=datetime.utcnow)
-    last_login_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
-    last_activity_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime, nullable=False, default=datetime.utcnow)
+    last_login_at: Mapped[datetime | None] = mapped_column(
+        DateTime, nullable=True)
+    last_activity_at: Mapped[datetime | None] = mapped_column(
+        DateTime, nullable=True)
 
-    welcome_email_sent_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
+    welcome_email_sent_at: Mapped[datetime |
+                                  None] = mapped_column(DateTime, nullable=True)
 
     # Relationships
     sessions: Mapped[list["DailySession"]] = relationship(
@@ -101,19 +113,21 @@ class User(db.Model):
             "last_login_at": self.last_login_at.isoformat() + "Z" if self.last_login_at else None,
             "last_activity_at": self.last_activity_at.isoformat() + "Z" if self.last_activity_at else None,
         }
-    
+
     def set_password(self, password: str):
         self.password_hash = generate_password_hash(password)
 
     def check_password(self, password: str) -> bool:
         return check_password_hash(self.password_hash, password)
-    
+
 # DAILY SESSION
+
 
 class DailySession(db.Model):
     __tablename__ = "daily_sessions"
     __table_args__ = (
-        UniqueConstraint("user_id", "session_date", "session_type", name="uq_session_user_date_type"),
+        UniqueConstraint("user_id", "session_date",
+                         "session_type", name="uq_session_user_date_type"),
         Index("ix_daily_sessions_user_date", "user_id", "session_date"),
     )
 
@@ -124,13 +138,17 @@ class DailySession(db.Model):
     )
 
     session_date: Mapped[datetime.date] = mapped_column(Date, nullable=False)
-    session_type: Mapped[SessionType] = mapped_column(SAEnum(SessionType), nullable=False)
+    session_type: Mapped[SessionType] = mapped_column(
+        SAEnum(SessionType), nullable=False)
 
     # Total puntos ganados en ESA sesión
-    points_earned: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
+    points_earned: Mapped[int] = mapped_column(
+        Integer, nullable=False, default=0)
 
-    is_active: Mapped[bool] = mapped_column(Boolean, nullable=False, default=True)
-    created_at: Mapped[datetime] = mapped_column(DateTime, nullable=False, default=datetime.utcnow)
+    is_active: Mapped[bool] = mapped_column(
+        Boolean, nullable=False, default=True)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime, nullable=False, default=datetime.utcnow)
 
     # Relationships
     user: Mapped["User"] = relationship(back_populates="sessions")
@@ -154,8 +172,9 @@ class DailySession(db.Model):
             "is_active": self.is_active,
             "created_at": self.created_at.isoformat() + "Z",
         }
-    
+
 # EMOTION y CHECKINS
+
 
 class Emotion(db.Model):
     __tablename__ = "emotions"
@@ -165,9 +184,11 @@ class Emotion(db.Model):
     description: Mapped[str | None] = mapped_column(String(255), nullable=True)
     value: Mapped[int | None] = mapped_column(Integer, nullable=True)
     url_music: Mapped[str | None] = mapped_column(String(500), nullable=True)
-    created_at: Mapped[datetime] = mapped_column(DateTime, nullable=False, default=datetime.utcnow)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime, nullable=False, default=datetime.utcnow)
 
-    checkins: Mapped[list["EmotionCheckin"]] = relationship(back_populates="emotion")
+    checkins: Mapped[list["EmotionCheckin"]
+                     ] = relationship(back_populates="emotion")
 
     def serialize(self):
         return {
@@ -177,7 +198,8 @@ class Emotion(db.Model):
             "value": self.value,
             "url_music": self.url_music,
         }
-    
+
+
 class EmotionCheckin(db.Model):
     __tablename__ = "emotion_checkins"
     __table_args__ = (
@@ -199,11 +221,13 @@ class EmotionCheckin(db.Model):
     )
 
     intensity: Mapped[int | None] = mapped_column(Integer, nullable=True)
-    
-    note: Mapped[str | None] = mapped_column(String(300), nullable=True)
-    created_at: Mapped[datetime] = mapped_column(DateTime, nullable=False, default=datetime.utcnow)
 
-    daily_session: Mapped["DailySession"] = relationship(back_populates="emotion_checkins")
+    note: Mapped[str | None] = mapped_column(String(300), nullable=True)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime, nullable=False, default=datetime.utcnow)
+
+    daily_session: Mapped["DailySession"] = relationship(
+        back_populates="emotion_checkins")
     emotion: Mapped["Emotion"] = relationship(back_populates="checkins")
 
     def serialize(self):
@@ -215,7 +239,8 @@ class EmotionCheckin(db.Model):
             "note": self.note,
             "created_at": self.created_at.isoformat() + "Z",
         }
-    
+
+
 class ActivityCategory(db.Model):
     __tablename__ = "activity_categories"
 
@@ -223,14 +248,14 @@ class ActivityCategory(db.Model):
     name: Mapped[str] = mapped_column(String(80), unique=True, nullable=False)
     description: Mapped[str | None] = mapped_column(String(255), nullable=True)
 
-    activities: Mapped[list["Activity"]] = relationship(back_populates="category")
+    activities: Mapped[list["Activity"]] = relationship(
+        back_populates="category")
 
     def serialize(self):
         return {"id": self.id, "name": self.name, "description": self.description}
-    
+
     def __repr__(self):
         return f"{self.name}"
-
 
 
 class Activity(db.Model):
@@ -238,7 +263,7 @@ class Activity(db.Model):
     __table_args__ = (Index("ix_activities_category", "category_id"),)
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True)
-    
+
     # ID que viene del frontend (activities.js)
     external_id: Mapped[str] = mapped_column(
         String(120),
@@ -259,10 +284,13 @@ class Activity(db.Model):
         SAEnum(ActivityType), nullable=False, default=ActivityType.both
     )
 
-    is_active: Mapped[bool] = mapped_column(Boolean, nullable=False, default=True)
+    is_active: Mapped[bool] = mapped_column(
+        Boolean, nullable=False, default=True)
 
-    category: Mapped["ActivityCategory"] = relationship(back_populates="activities")
-    completions: Mapped[list["ActivityCompletion"]] = relationship(back_populates="activity")
+    category: Mapped["ActivityCategory"] = relationship(
+        back_populates="activities")
+    completions: Mapped[list["ActivityCompletion"]
+                        ] = relationship(back_populates="activity")
 
     def serialize(self):
         return {
@@ -274,10 +302,10 @@ class Activity(db.Model):
             "activity_type": self.activity_type.value,
             "is_active": self.is_active,
         }
-    
+
     def __repr__(self):
         return f"{self.name}"
- # ACTIVITIES + CATEGORIES + COMPLETIONS   
+ # ACTIVITIES + CATEGORIES + COMPLETIONS
 
 
 class ActivityCompletion(db.Model):
@@ -290,7 +318,8 @@ class ActivityCompletion(db.Model):
             "activity_id",
             name="uq_session_activity"
         ),
-        CheckConstraint("points_awarded IN (0, 5, 10, 20)", name="ck_activity_points"),
+        CheckConstraint("points_awarded IN (0, 5, 10, 20)",
+                        name="ck_activity_points"),
     )
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True)
@@ -304,11 +333,14 @@ class ActivityCompletion(db.Model):
 
     # Guardas el resultado final: 20 / 10 / 5
     # - 0 si ya se alcanzó el límite de 3 actividades con puntos en esa sesión
-    points_awarded: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
+    points_awarded: Mapped[int] = mapped_column(
+        Integer, nullable=False, default=0)
 
-    completed_at: Mapped[datetime] = mapped_column(DateTime, nullable=False, default=datetime.utcnow)
+    completed_at: Mapped[datetime] = mapped_column(
+        DateTime, nullable=False, default=datetime.utcnow)
 
-    daily_session: Mapped["DailySession"] = relationship(back_populates="activity_completions")
+    daily_session: Mapped["DailySession"] = relationship(
+        back_populates="activity_completions")
     activity: Mapped["Activity"] = relationship(back_populates="completions")
 
     def serialize(self):
@@ -319,8 +351,9 @@ class ActivityCompletion(db.Model):
             "points_awarded": self.points_awarded,
             "completed_at": self.completed_at.isoformat() + "Z",
         }
-    
+
 # GOALS  SESSIONLINK  PROGRESS
+
 
 class Goal(db.Model):
     __tablename__ = "goals"
@@ -328,6 +361,7 @@ class Goal(db.Model):
         Index("ix_goals_user", "user_id"),
         CheckConstraint("target_value >= 0", name="ck_goal_target_nonneg"),
         CheckConstraint("current_value >= 0", name="ck_goal_current_nonneg"),
+        CheckConstraint("points_reward >= 0", name="ck_goal_points_nonneg"),
     )
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True)
@@ -339,15 +373,32 @@ class Goal(db.Model):
     title: Mapped[str] = mapped_column(String(120), nullable=False)
     description: Mapped[str | None] = mapped_column(String(255), nullable=True)
 
-    size: Mapped[GoalSize] = mapped_column(SAEnum(GoalSize), nullable=False)
+    # Compat con routes.py (y tu checkpoint)
+    goal_type: Mapped[str] = mapped_column(
+        String(40), nullable=False, default="custom")
+    frequency: Mapped[str] = mapped_column(
+        String(20), nullable=False, default="flexible")
+    start_date: Mapped[date |
+                       None] = mapped_column(Date, nullable=True)
+    end_date: Mapped[date | None] = mapped_column(Date, nullable=True)
+
+    size: Mapped[GoalSize] = mapped_column(
+        SAEnum(GoalSize), nullable=False, default=GoalSize.medium)
 
     target_value: Mapped[int] = mapped_column(Integer, nullable=False)
-    current_value: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
+    current_value: Mapped[int] = mapped_column(
+        Integer, nullable=False, default=0)
 
-    is_active: Mapped[bool] = mapped_column(Boolean, nullable=False, default=True)
-    completed_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
+    points_reward: Mapped[int] = mapped_column(
+        Integer, nullable=False, default=0)
 
-    created_at: Mapped[datetime] = mapped_column(DateTime, nullable=False, default=datetime.utcnow)
+    is_active: Mapped[bool] = mapped_column(
+        Boolean, nullable=False, default=True)
+    completed_at: Mapped[datetime | None] = mapped_column(
+        DateTime, nullable=True)
+
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime, nullable=False, default=datetime.utcnow)
 
     user: Mapped["User"] = relationship(back_populates="goals")
     session_links: Mapped[list["DailySessionGoal"]] = relationship(
@@ -363,9 +414,17 @@ class Goal(db.Model):
             "user_id": self.user_id,
             "title": self.title,
             "description": self.description,
+
+            "goal_type": self.goal_type,
+            "frequency": self.frequency,
+            "start_date": self.start_date.isoformat() if self.start_date else None,
+            "end_date": self.end_date.isoformat() if self.end_date else None,
+
             "size": self.size.value,
             "target_value": self.target_value,
             "current_value": self.current_value,
+            "points_reward": int(self.points_reward or 0),
+
             "is_active": self.is_active,
             "completed_at": self.completed_at.isoformat() + "Z" if self.completed_at else None,
             "created_at": self.created_at.isoformat() + "Z",
@@ -375,7 +434,8 @@ class Goal(db.Model):
 class DailySessionGoal(db.Model):
     __tablename__ = "daily_session_goals"
     __table_args__ = (
-        UniqueConstraint("daily_session_id", "goal_id", name="uq_session_goal"),
+        UniqueConstraint("daily_session_id", "goal_id",
+                         name="uq_session_goal"),
         Index("ix_session_goals_session", "daily_session_id"),
         Index("ix_session_goals_goal", "goal_id"),
     )
@@ -394,9 +454,11 @@ class DailySessionGoal(db.Model):
     )
     note: Mapped[str | None] = mapped_column(String(300), nullable=True)
 
-    created_at: Mapped[datetime] = mapped_column(DateTime, nullable=False, default=datetime.utcnow)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime, nullable=False, default=datetime.utcnow)
 
-    daily_session: Mapped["DailySession"] = relationship(back_populates="session_goals")
+    daily_session: Mapped["DailySession"] = relationship(
+        back_populates="session_goals")
     goal: Mapped["Goal"] = relationship(back_populates="session_links")
 
     def serialize(self):
@@ -408,6 +470,7 @@ class DailySessionGoal(db.Model):
             "note": self.note,
             "created_at": self.created_at.isoformat() + "Z",
         }
+
 
 
 class GoalProgress(db.Model):
@@ -423,7 +486,6 @@ class GoalProgress(db.Model):
         Integer, ForeignKey("goals.id", ondelete="CASCADE"), nullable=False
     )
 
-    # Opcional: liga el progreso a una sesión concreta
     daily_session_id: Mapped[int | None] = mapped_column(
         Integer, ForeignKey("daily_sessions.id", ondelete="SET NULL"), nullable=True
     )
@@ -443,14 +505,16 @@ class GoalProgress(db.Model):
             "note": self.note,
             "created_at": self.created_at.isoformat() + "Z",
         }
-    
+
 # REMINDERS (loops)
+
 
 class Reminder(db.Model):
     __tablename__ = "reminders"
     __table_args__ = (
         Index("ix_reminders_user", "user_id"),
-        Index("ix_reminders_user_type_active", "user_id", "reminder_type", "is_active"),
+        Index("ix_reminders_user_type_active",
+              "user_id", "reminder_type", "is_active"),
     )
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True)
@@ -459,20 +523,26 @@ class Reminder(db.Model):
         Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=False
     )
 
-    reminder_type: Mapped[ReminderType] = mapped_column(SAEnum(ReminderType), nullable=False)
-    mode: Mapped[ReminderMode] = mapped_column(SAEnum(ReminderMode), nullable=False)
+    reminder_type: Mapped[ReminderType] = mapped_column(
+        SAEnum(ReminderType), nullable=False)
+    mode: Mapped[ReminderMode] = mapped_column(
+        SAEnum(ReminderMode), nullable=False)
 
     # mode=fixed: hora local elegida por el usuario (ej 09:00 o 22:00)
     local_time: Mapped[time | None] = mapped_column(Time, nullable=True)
 
     # mode=inactivity: minutos sin actividad (ej 1440 = 24h)
-    inactive_after_minutes: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    inactive_after_minutes: Mapped[int | None] = mapped_column(
+        Integer, nullable=True)
 
     # simple: "daily" o "mon,tue,wed"
-    days_of_week: Mapped[str] = mapped_column(String(40), nullable=False, default="daily")
+    days_of_week: Mapped[str] = mapped_column(
+        String(40), nullable=False, default="daily")
 
-    last_sent_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
-    is_active: Mapped[bool] = mapped_column(Boolean, nullable=False, default=True)
+    last_sent_at: Mapped[datetime | None] = mapped_column(
+        DateTime, nullable=True)
+    is_active: Mapped[bool] = mapped_column(
+        Boolean, nullable=False, default=True)
 
     user: Mapped["User"] = relationship(back_populates="reminders")
 
