@@ -1,5 +1,7 @@
 import { Link, NavLink, useNavigate } from "react-router-dom";
 import { logout } from "../services/authService";
+import { useContext } from "react";
+import { MusicPlayerContext } from "../MusicPlayerContext.jsx";
 
 const LogoMark = ({ size = 22 }) => (
 	<svg width={size} height={size} viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
@@ -11,7 +13,7 @@ const LogoMark = ({ size = 22 }) => (
 
 export const AppNavbar = () => {
 	const navigate = useNavigate();
-
+	const { enableSound } = useContext(MusicPlayerContext);
 	const handleLogout = () => {
 		// Solo credenciales
 		localStorage.removeItem("pb_token");
@@ -55,6 +57,9 @@ export const AppNavbar = () => {
 					<div className="d-flex gap-2">
 						<button type="button" className="btn btn-outline-secondary" onClick={handleLogout}>
 							Salir
+						</button>
+						<button type="button" className="btn btn-outline-secondary" onClick={enableSound}>
+							{enableSound? "🔊" : "🔇"}
 						</button>
 					</div>
 				</div>
