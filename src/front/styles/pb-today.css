@@ -1,0 +1,61 @@
+/* Place Between — Today (Day/Night wrapper + theme overrides) */
+
+.pb-today .pb-maxw {
+  max-width: 560px;
+}
+
+/* Dark theme (Noche) */
+.pb-today-night {
+  background:
+    radial-gradient(
+      1200px 600px at 20% 10%,
+      rgba(91, 107, 255, 0.22),
+      transparent 60%
+    ),
+    radial-gradient(
+      900px 450px at 90% 20%,
+      rgba(255, 153, 85, 0.12),
+      transparent 55%
+    ),
+    #0b1020;
+  min-height: calc(100vh - 64px);
+}
+
+.pb-today-night .pb-phase {
+  color: rgba(173, 181, 255, 0.95);
+}
+.pb-today-night h1,
+.pb-today-night h2,
+.pb-today-night h3 {
+  color: #f3f5ff;
+}
+.pb-today-night .pb-sub {
+  color: rgba(227, 230, 255, 0.72);
+}
+
+.pb-today-night .card {
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.1) !important;
+  color: #f3f5ff;
+}
+
+.pb-today-night .text-secondary {
+  color: rgba(227, 230, 255, 0.7) !important;
+}
+
+.pb-today-night a {
+  color: rgba(160, 175, 255, 0.95);
+}
+.pb-today-night a:hover {
+  color: rgba(200, 210, 255, 1);
+}
+
+.pb-today-night .modal-content {
+  background: #0f1630;
+  color: #f3f5ff;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+}
+.pb-today-night .modal-header,
+.pb-today-night .modal-footer {
+  border-color: rgba(255, 255, 255, 0.1);
+}

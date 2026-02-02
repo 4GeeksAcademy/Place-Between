@@ -1,0 +1,472 @@
+/* Goals — visual language similar a Mirror (cards oscuras, bordes suaves, glow) */
+
+.pb-goals-shell {
+  padding: 28px 18px 60px;
+}
+
+/* Day/Night wrapper */
+.pb-goals-shell.pb-night {
+  color: rgba(255, 255, 255, 0.92);
+  background:
+    radial-gradient(
+      900px 500px at 20% 10%,
+      rgba(90, 120, 255, 0.14),
+      transparent 60%
+    ),
+    radial-gradient(
+      700px 500px at 80% 20%,
+      rgba(255, 90, 200, 0.1),
+      transparent 60%
+    ),
+    linear-gradient(180deg, #070a14 0%, #050711 100%);
+}
+
+.pb-goals-shell.pb-day {
+  color: #101422;
+  background:
+    radial-gradient(
+      900px 500px at 20% 0%,
+      rgba(90, 120, 255, 0.16),
+      transparent 60%
+    ),
+    radial-gradient(
+      700px 500px at 80% 15%,
+      rgba(255, 150, 70, 0.12),
+      transparent 60%
+    ),
+    linear-gradient(180deg, #f6f8ff 0%, #ffffff 60%, #f5f7ff 100%);
+}
+
+.pb-goals-hero {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 18px;
+  margin: 0 auto 18px;
+  max-width: 1120px;
+  padding: 18px 18px 8px;
+}
+
+.pb-goals-kicker {
+  font-size: 12px;
+  letter-spacing: 0.12em;
+  opacity: 0.8;
+}
+
+.pb-goals-title {
+  margin: 6px 0 6px;
+  font-size: 44px;
+  line-height: 1.06;
+  font-weight: 800;
+}
+
+.pb-goals-subtitle {
+  opacity: 0.82;
+  max-width: 720px;
+}
+
+.pb-goals-hero-actions {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+}
+
+.pb-goals-card {
+  max-width: 1120px;
+  margin: 0 auto;
+  padding: 18px;
+  border-radius: 18px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: rgba(255, 255, 255, 0.06);
+  box-shadow: 0 18px 40px rgba(0, 0, 0, 0.18);
+  backdrop-filter: blur(10px);
+}
+
+.pb-goals-shell.pb-day .pb-goals-card {
+  border: 1px solid rgba(10, 20, 40, 0.1);
+  background: rgba(255, 255, 255, 0.72);
+  box-shadow: 0 18px 40px rgba(18, 30, 70, 0.1);
+}
+
+.pb-goals-card-title {
+  font-size: 18px;
+  font-weight: 800;
+}
+
+.pb-goals-card-hint {
+  opacity: 0.8;
+  margin-top: 2px;
+  font-size: 13px;
+}
+
+.pb-goals-card-row {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+}
+
+.pb-goals-muted {
+  opacity: 0.75;
+  font-size: 13px;
+}
+
+.pb-goals-mono {
+  font-family:
+    ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono",
+    "Courier New", monospace;
+}
+
+.pb-goals-label {
+  font-weight: 700;
+  opacity: 0.85;
+  font-size: 13px;
+}
+
+.pb-goals-input {
+  border-radius: 12px !important;
+}
+
+.pb-goals-btn {
+  border-radius: 12px;
+  font-weight: 800;
+}
+
+/* XP block */
+.pb-goals-xp-top {
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+  align-items: center;
+}
+
+.pb-goals-card-kicker {
+  font-size: 12px;
+  letter-spacing: 0.08em;
+  opacity: 0.75;
+  margin-bottom: 2px;
+}
+
+.pb-goals-xp-level {
+  font-size: 20px;
+  font-weight: 900;
+}
+
+.pb-goals-xp-next {
+  opacity: 0.8;
+  font-size: 13px;
+}
+
+.pb-goals-xp-right {
+  text-align: right;
+}
+
+.pb-goals-xp-value {
+  font-size: 24px;
+  font-weight: 900;
+}
+
+.pb-goals-xp-label {
+  font-size: 12px;
+  opacity: 0.7;
+}
+
+.pb-goals-progress {
+  height: 10px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.1);
+  margin-top: 14px;
+  overflow: hidden;
+}
+
+.pb-goals-shell.pb-day .pb-goals-progress {
+  background: rgba(10, 20, 40, 0.1);
+}
+
+.pb-goals-progress-bar {
+  height: 100%;
+  border-radius: 999px;
+  background: linear-gradient(
+    90deg,
+    rgba(80, 140, 255, 1),
+    rgba(255, 120, 220, 1)
+  );
+}
+
+.pb-goals-roadmap {
+  display: grid;
+  grid-template-columns: repeat(6, 1fr);
+  gap: 10px;
+  margin-top: 14px;
+  align-items: center;
+}
+
+.pb-goals-node {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  opacity: 0.55;
+}
+
+.pb-goals-node.is-active {
+  opacity: 0.95;
+}
+
+.pb-goals-dot {
+  width: 14px;
+  height: 14px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.25);
+  border: 2px solid rgba(255, 255, 255, 0.25);
+}
+
+.pb-goals-node.is-active .pb-goals-dot {
+  background: rgba(80, 140, 255, 1);
+  border-color: rgba(255, 255, 255, 0.35);
+}
+
+.pb-goals-node.is-current .pb-goals-dot {
+  box-shadow: 0 0 0 6px rgba(80, 140, 255, 0.18);
+}
+
+.pb-goals-node-lv {
+  font-weight: 800;
+  font-size: 12px;
+}
+
+.pb-goals-node-xp {
+  font-size: 11px;
+  opacity: 0.75;
+}
+
+/* Alerts */
+.pb-goals-alert {
+  max-width: 1120px;
+  margin: 14px auto;
+  padding: 14px 16px;
+  border-radius: 14px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+}
+
+.pb-goals-alert-ok {
+  background: rgba(40, 180, 120, 0.15);
+  border: 1px solid rgba(40, 180, 120, 0.25);
+}
+
+.pb-goals-alert-err {
+  background: rgba(255, 80, 80, 0.15);
+  border: 1px solid rgba(255, 80, 80, 0.25);
+}
+
+/* Tabs */
+.pb-goals-tabs {
+  max-width: 1120px;
+  margin: 10px auto 14px;
+  display: flex;
+  gap: 8px;
+}
+
+.pb-goals-tab {
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  background: rgba(255, 255, 255, 0.06);
+  padding: 8px 12px;
+  border-radius: 12px;
+  font-weight: 800;
+  color: inherit;
+}
+
+.pb-goals-shell.pb-day .pb-goals-tab {
+  border: 1px solid rgba(10, 20, 40, 0.12);
+  background: rgba(255, 255, 255, 0.65);
+}
+
+.pb-goals-tab.is-active {
+  border-color: rgba(80, 140, 255, 0.6);
+  box-shadow: 0 0 0 3px rgba(80, 140, 255, 0.12);
+}
+
+/* Grid */
+.pb-goals-grid {
+  max-width: 1120px;
+  margin: 0 auto;
+  display: grid;
+  grid-template-columns: 1.6fr 1fr;
+  gap: 16px;
+}
+
+@media (max-width: 992px) {
+  .pb-goals-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* List items */
+.pb-goals-list {
+  margin-top: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.pb-goals-item {
+  padding: 14px;
+  border-radius: 16px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: rgba(255, 255, 255, 0.04);
+}
+
+.pb-goals-shell.pb-day .pb-goals-item {
+  border: 1px solid rgba(10, 20, 40, 0.1);
+  background: rgba(255, 255, 255, 0.6);
+}
+
+.pb-goals-item.is-done {
+  opacity: 0.9;
+}
+
+.pb-goals-item-head {
+  display: flex;
+  justify-content: space-between;
+  gap: 14px;
+}
+
+.pb-goals-item-title {
+  font-weight: 900;
+  font-size: 16px;
+}
+
+.pb-goals-item-desc {
+  opacity: 0.82;
+  font-size: 13px;
+  margin-top: 3px;
+}
+
+.pb-goals-item-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  justify-content: flex-end;
+}
+
+.pb-goals-pill {
+  font-size: 12px;
+  padding: 4px 8px;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  background: rgba(255, 255, 255, 0.06);
+  opacity: 0.92;
+}
+
+.pb-goals-pill-done {
+  border-color: rgba(40, 180, 120, 0.35);
+  background: rgba(40, 180, 120, 0.12);
+}
+
+.pb-goals-item-progress {
+  margin-top: 12px;
+}
+
+.pb-goals-bar {
+  height: 10px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.1);
+  overflow: hidden;
+}
+
+.pb-goals-shell.pb-day .pb-goals-bar {
+  background: rgba(10, 20, 40, 0.1);
+}
+
+.pb-goals-bar-fill {
+  height: 100%;
+  border-radius: 999px;
+  background: linear-gradient(
+    90deg,
+    rgba(80, 140, 255, 1),
+    rgba(130, 220, 255, 1)
+  );
+}
+
+.pb-goals-item-numbers {
+  display: flex;
+  justify-content: space-between;
+  margin-top: 6px;
+  font-size: 12px;
+  opacity: 0.8;
+}
+
+.pb-goals-item-actions {
+  margin-top: 12px;
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.pb-goals-inline {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+/* Presets */
+.pb-goals-presets {
+  margin-top: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.pb-goals-preset {
+  padding: 14px;
+  border-radius: 16px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: rgba(255, 255, 255, 0.04);
+}
+
+.pb-goals-shell.pb-day .pb-goals-preset {
+  border: 1px solid rgba(10, 20, 40, 0.1);
+  background: rgba(255, 255, 255, 0.6);
+}
+
+.pb-goals-preset-title {
+  font-weight: 900;
+  font-size: 15px;
+}
+
+.pb-goals-preset-meta {
+  margin-top: 8px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.pb-goals-preset-desc {
+  margin-top: 8px;
+  opacity: 0.85;
+  font-size: 13px;
+}
+
+.pb-goals-preset-foot {
+  margin-top: 12px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+}
+
+/* Empty / steps */
+.pb-goals-empty {
+  margin-top: 10px;
+  padding: 12px;
+  border-radius: 14px;
+  border: 1px dashed rgba(255, 255, 255, 0.16);
+  opacity: 0.85;
+}
+
+.pb-goals-steps {
+  margin-top: 10px;
+  opacity: 0.9;
+}

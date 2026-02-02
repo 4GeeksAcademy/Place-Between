@@ -1,0 +1,42 @@
+[
+  {
+    "id": "water_5_today",
+    "category": "Físico",
+    "title": "Beber 5 vasos de agua hoy",
+    "description": "Hidratación simple para cuidar tu cuerpo.",
+    "frequency": "daily",
+    "size": "small",
+    "target_value": 5,
+    "points_reward": 10
+  },
+  {
+    "id": "sunlight_10m",
+    "category": "Físico",
+    "title": "Luz natural 10 min",
+    "description": "Ventana o calle, breve.",
+    "frequency": "daily",
+    "size": "small",
+    "target_value": 1,
+    "points_reward": 5
+  },
+  {
+    "id": "breathing_2m",
+    "category": "Regulación",
+    "title": "Respiración guiada 2 min",
+    "description": "Pausa corta para regular.",
+    "frequency": "daily",
+    "size": "small",
+    "target_value": 1,
+    "points_reward": 5
+  },
+  {
+    "id": "walk_3_week",
+    "category": "Físico",
+    "title": "Caminar 3 días esta semana",
+    "description": "Constancia > intensidad.",
+    "frequency": "weekly",
+    "size": "medium",
+    "target_value": 3,
+    "points_reward": 15
+  }
+]

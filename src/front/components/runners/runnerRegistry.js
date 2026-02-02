@@ -4,6 +4,14 @@
 import { EmotionCheckinRunner } from "./EmotionCheckinRunner";
 import { BreathingGuidedRunner } from "./BreathingGuidedRunner";
 import { Grounding54321Runner } from "./Grounding54321Runner";
+import { SomaticCheckRunner } from "./SomaticCheckRunner";
+import { LibraryTipRunner } from "./LibraryTipRunner";
+import { GoalsReviewRunner } from "./GoalsReviewRunner";
+import { StretchBreakRunner } from "./StretchBreakRunner";
+import { MirrorReviewRunner } from "./MirrorReviewRunner";
+import { BodySignalRunner } from "./BodySignalRunner";
+import { ReframeRunner } from "./ReframeRunner";
+import { NightJournalRunner } from "./NightJournalRunner";
 
 /**
  * runnerMap:
@@ -17,6 +25,14 @@ export const runnerMap = {
   emotion_checkin: EmotionCheckinRunner,
   breathing_guided: BreathingGuidedRunner,
   thought_cut: Grounding54321Runner,
+  somatic_check: SomaticCheckRunner,
+  library_tip: LibraryTipRunner,
+  goals_review: GoalsReviewRunner,
+  stretch_break: StretchBreakRunner,
+  mirror_review: MirrorReviewRunner,
+  body_signal: BodySignalRunner,
+  reframe: ReframeRunner,
+  night_journal: NightJournalRunner,
 };
 
 /**
@@ -35,8 +51,6 @@ export const runnerAliases = {
 export const knownRunTypes = new Set([
   // Ya implementado
   "emotion_checkin",
-
-  // Catalog future (según activities.js)
   "breathing_guided",
   "somatic_check",
   "library_tip",

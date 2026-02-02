@@ -12,8 +12,10 @@ import { ResetPassword } from "./pages/ResetPassword";
 
 import { Today } from "./pages/Today";
 import { Activities } from "./pages/Activities";
+import  Goals from "./pages/Goals";
 import { Mirror } from "./pages/Mirror";
 import { Profile } from "./pages/Profile";
+
 
 export const router = createBrowserRouter([
   // Público
@@ -34,6 +36,7 @@ export const router = createBrowserRouter([
     children: [
       { path: "/today", element: <Today /> },
       { path: "/activities", element: <Activities /> },
+      { path: "/goals", element: <Goals /> },
       { path: "/mirror", element: <Mirror /> },
       { path: "/profile", element: <Profile /> },
     ],

@@ -1,8 +1,8 @@
 """empty message
 
-Revision ID: 07950bcf718c
-Revises: 0763d677d453
-Create Date: 2026-01-19 18:57:50.600246
+Revision ID: edcd4409964b
+Revises: 
+Create Date: 2026-02-02 19:02:57.474165
 
 """
 from alembic import op
@@ -10,8 +10,8 @@ import sqlalchemy as sa
 
 
 # revision identifiers, used by Alembic.
-revision = '07950bcf718c'
-down_revision = '0763d677d453'
+revision = 'edcd4409964b'
+down_revision = None
 branch_labels = None
 depends_on = None
 
@@ -35,6 +35,15 @@ def upgrade():
     sa.PrimaryKeyConstraint('id'),
     sa.UniqueConstraint('name')
     )
+    op.create_table('goal_categories',
+    sa.Column('id', sa.Integer(), nullable=False),
+    sa.Column('name', sa.String(length=80), nullable=False),
+    sa.Column('description', sa.String(length=255), nullable=True),
+    sa.PrimaryKeyConstraint('id')
+    )
+    with op.batch_alter_table('goal_categories', schema=None) as batch_op:
+        batch_op.create_index(batch_op.f('ix_goal_categories_name'), ['name'], unique=True)
+
     op.create_table('users',
     sa.Column('id', sa.Integer(), nullable=False),
     sa.Column('email', sa.String(length=120), nullable=False),
@@ -49,6 +58,7 @@ def upgrade():
     sa.Column('last_login_at', sa.DateTime(), nullable=True),
     sa.Column('last_activity_at', sa.DateTime(), nullable=True),
     sa.Column('welcome_email_sent_at', sa.DateTime(), nullable=True),
+    sa.Column('emails_enabled', sa.Boolean(), nullable=False),
     sa.PrimaryKeyConstraint('id')
     )
     with op.batch_alter_table('users', schema=None) as batch_op:
@@ -57,6 +67,7 @@ def upgrade():
 
     op.create_table('activities',
     sa.Column('id', sa.Integer(), nullable=False),
+    sa.Column('external_id', sa.String(length=120), nullable=False),
     sa.Column('category_id', sa.Integer(), nullable=False),
     sa.Column('name', sa.String(length=120), nullable=False),
     sa.Column('description', sa.String(length=255), nullable=True),
@@ -67,6 +78,7 @@ def upgrade():
     )
     with op.batch_alter_table('activities', schema=None) as batch_op:
         batch_op.create_index('ix_activities_category', ['category_id'], unique=False)
+        batch_op.create_index(batch_op.f('ix_activities_external_id'), ['external_id'], unique=True)
 
     op.create_table('daily_sessions',
     sa.Column('id', sa.Integer(), nullable=False),
@@ -83,18 +95,45 @@ def upgrade():
     with op.batch_alter_table('daily_sessions', schema=None) as batch_op:
         batch_op.create_index('ix_daily_sessions_user_date', ['user_id', 'session_date'], unique=False)
 
+    op.create_table('goal_templates',
+    sa.Column('id', sa.Integer(), nullable=False),
+    sa.Column('external_id', sa.String(length=120), nullable=False),
+    sa.Column('category_id', sa.Integer(), nullable=False),
+    sa.Column('title', sa.String(length=120), nullable=False),
+    sa.Column('description', sa.String(length=255), nullable=True),
+    sa.Column('frequency', sa.String(length=20), nullable=False),
+    sa.Column('size', sa.Enum('small', 'medium', 'large', name='goalsize'), nullable=False),
+    sa.Column('target_value', sa.Integer(), nullable=False),
+    sa.Column('points_reward', sa.Integer(), nullable=False),
+    sa.Column('is_active', sa.Boolean(), nullable=False),
+    sa.Column('created_at', sa.DateTime(), nullable=False),
+    sa.ForeignKeyConstraint(['category_id'], ['goal_categories.id'], ),
+    sa.PrimaryKeyConstraint('id')
+    )
+    with op.batch_alter_table('goal_templates', schema=None) as batch_op:
+        batch_op.create_index('ix_goal_templates_category', ['category_id'], unique=False)
+        batch_op.create_index(batch_op.f('ix_goal_templates_external_id'), ['external_id'], unique=True)
+        batch_op.create_index('ix_goal_templates_frequency', ['frequency'], unique=False)
+        batch_op.create_index('ix_goal_templates_size', ['size'], unique=False)
+
     op.create_table('goals',
     sa.Column('id', sa.Integer(), nullable=False),
     sa.Column('user_id', sa.Integer(), nullable=False),
     sa.Column('title', sa.String(length=120), nullable=False),
     sa.Column('description', sa.String(length=255), nullable=True),
+    sa.Column('goal_type', sa.String(length=40), nullable=False),
+    sa.Column('frequency', sa.String(length=20), nullable=False),
+    sa.Column('start_date', sa.Date(), nullable=True),
+    sa.Column('end_date', sa.Date(), nullable=True),
     sa.Column('size', sa.Enum('small', 'medium', 'large', name='goalsize'), nullable=False),
     sa.Column('target_value', sa.Integer(), nullable=False),
     sa.Column('current_value', sa.Integer(), nullable=False),
+    sa.Column('points_reward', sa.Integer(), nullable=False),
     sa.Column('is_active', sa.Boolean(), nullable=False),
     sa.Column('completed_at', sa.DateTime(), nullable=True),
     sa.Column('created_at', sa.DateTime(), nullable=False),
     sa.CheckConstraint('current_value >= 0', name='ck_goal_current_nonneg'),
+    sa.CheckConstraint('points_reward >= 0', name='ck_goal_points_nonneg'),
     sa.CheckConstraint('target_value >= 0', name='ck_goal_target_nonneg'),
     sa.ForeignKeyConstraint(['user_id'], ['users.id'], ondelete='CASCADE'),
     sa.PrimaryKeyConstraint('id')
@@ -125,10 +164,11 @@ def upgrade():
     sa.Column('activity_id', sa.Integer(), nullable=False),
     sa.Column('points_awarded', sa.Integer(), nullable=False),
     sa.Column('completed_at', sa.DateTime(), nullable=False),
-    sa.CheckConstraint('points_awarded >= 0', name='ck_activity_points_nonneg'),
+    sa.CheckConstraint('points_awarded IN (0, 5, 10, 20)', name='ck_activity_points'),
     sa.ForeignKeyConstraint(['activity_id'], ['activities.id'], ),
     sa.ForeignKeyConstraint(['daily_session_id'], ['daily_sessions.id'], ondelete='CASCADE'),
-    sa.PrimaryKeyConstraint('id')
+    sa.PrimaryKeyConstraint('id'),
+    sa.UniqueConstraint('daily_session_id', 'activity_id', name='uq_session_activity')
     )
     with op.batch_alter_table('activity_completions', schema=None) as batch_op:
         batch_op.create_index('ix_activity_completions_activity', ['activity_id'], unique=False)
@@ -154,8 +194,10 @@ def upgrade():
     sa.Column('id', sa.Integer(), nullable=False),
     sa.Column('daily_session_id', sa.Integer(), nullable=False),
     sa.Column('emotion_id', sa.Integer(), nullable=False),
+    sa.Column('intensity', sa.Integer(), nullable=True),
     sa.Column('note', sa.String(length=300), nullable=True),
     sa.Column('created_at', sa.DateTime(), nullable=False),
+    sa.CheckConstraint('intensity >= 1 AND intensity <= 10', name='ck_emotion_checkin_intensity_range'),
     sa.ForeignKeyConstraint(['daily_session_id'], ['daily_sessions.id'], ondelete='CASCADE'),
     sa.ForeignKeyConstraint(['emotion_id'], ['emotions.id'], ),
     sa.PrimaryKeyConstraint('id')
@@ -179,20 +221,11 @@ def upgrade():
         batch_op.create_index('ix_goal_progress_goal', ['goal_id'], unique=False)
         batch_op.create_index('ix_goal_progress_session', ['daily_session_id'], unique=False)
 
-    op.drop_table('user')
     # ### end Alembic commands ###
 
 
 def downgrade():
     # ### commands auto generated by Alembic - please adjust! ###
-    op.create_table('user',
-    sa.Column('id', sa.INTEGER(), autoincrement=True, nullable=False),
-    sa.Column('email', sa.VARCHAR(length=120), autoincrement=False, nullable=False),
-    sa.Column('password', sa.VARCHAR(), autoincrement=False, nullable=False),
-    sa.Column('is_active', sa.BOOLEAN(), autoincrement=False, nullable=False),
-    sa.PrimaryKeyConstraint('id', name=op.f('user_pkey')),
-    sa.UniqueConstraint('email', name=op.f('user_email_key'), postgresql_include=[], postgresql_nulls_not_distinct=False)
-    )
     with op.batch_alter_table('goal_progress', schema=None) as batch_op:
         batch_op.drop_index('ix_goal_progress_session')
         batch_op.drop_index('ix_goal_progress_goal')
@@ -222,11 +255,19 @@ def downgrade():
         batch_op.drop_index('ix_goals_user')
 
     op.drop_table('goals')
+    with op.batch_alter_table('goal_templates', schema=None) as batch_op:
+        batch_op.drop_index('ix_goal_templates_size')
+        batch_op.drop_index('ix_goal_templates_frequency')
+        batch_op.drop_index(batch_op.f('ix_goal_templates_external_id'))
+        batch_op.drop_index('ix_goal_templates_category')
+
+    op.drop_table('goal_templates')
     with op.batch_alter_table('daily_sessions', schema=None) as batch_op:
         batch_op.drop_index('ix_daily_sessions_user_date')
 
     op.drop_table('daily_sessions')
     with op.batch_alter_table('activities', schema=None) as batch_op:
+        batch_op.drop_index(batch_op.f('ix_activities_external_id'))
         batch_op.drop_index('ix_activities_category')
 
     op.drop_table('activities')
@@ -235,6 +276,10 @@ def downgrade():
         batch_op.drop_index(batch_op.f('ix_users_email'))
 
     op.drop_table('users')
+    with op.batch_alter_table('goal_categories', schema=None) as batch_op:
+        batch_op.drop_index(batch_op.f('ix_goal_categories_name'))
+
+    op.drop_table('goal_categories')
     op.drop_table('emotions')
     op.drop_table('activity_categories')
     # ### end Alembic commands ###

@@ -1,0 +1,72 @@
+/* Place Between — Core (utilities + shared components) */
+
+.pb-maxw {
+  max-width: 560px;
+}
+
+.pb-maxw-lg {
+  max-width: 720px;
+}
+
+.pb-card {
+  border: 1px solid rgba(0, 0, 0, 0.08);
+  border-radius: 18px;
+}
+
+.pb-icon {
+  width: 44px;
+  height: 44px;
+  border-radius: 14px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+}
+
+.pb-mono {
+  font-family:
+    ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono",
+    "Courier New", monospace;
+}
+
+.pb-meta {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.pb-dot {
+  width: 4px;
+  height: 4px;
+  border-radius: 999px;
+  background: rgba(108, 117, 125, 0.6);
+  display: inline-block;
+}
+
+/* Progress ring */
+
+.pb-ring {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.pb-ring-track {
+  stroke: rgba(108, 117, 125, 0.18);
+}
+
+.pb-ring-bar {
+  stroke: rgba(13, 110, 253, 0.95);
+  transform: rotate(-90deg);
+  transform-origin: 50% 50%;
+}
+
+.pb-ring-label {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  font-weight: 700;
+}
