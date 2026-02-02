@@ -79,6 +79,10 @@ class User(db.Model):
     email_verified_at: Mapped[datetime | None] = mapped_column(
         DateTime, nullable=True)
 
+    emails_enabled: Mapped[bool] = mapped_column(
+        Boolean, nullable=True, default=True
+    )
+
     created_at: Mapped[datetime] = mapped_column(
         DateTime, nullable=False, default=datetime.utcnow)
     last_login_at: Mapped[datetime | None] = mapped_column(
@@ -112,6 +116,7 @@ class User(db.Model):
             "created_at": self.created_at.isoformat() + "Z",
             "last_login_at": self.last_login_at.isoformat() + "Z" if self.last_login_at else None,
             "last_activity_at": self.last_activity_at.isoformat() + "Z" if self.last_activity_at else None,
+            "emails_enabled": self.emails_enabled,
         }
 
     def set_password(self, password: str):
