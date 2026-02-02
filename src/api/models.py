@@ -90,6 +90,9 @@ class User(db.Model):
     last_activity_at: Mapped[datetime | None] = mapped_column(
         DateTime, nullable=True)
 
+    welcome_email_sent_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
+
+    emails_enabled: Mapped[bool] = mapped_column(Boolean, nullable=False, default=True)
     welcome_email_sent_at: Mapped[datetime |
                                   None] = mapped_column(DateTime, nullable=True)
 
@@ -378,6 +381,15 @@ class Goal(db.Model):
     title: Mapped[str] = mapped_column(String(120), nullable=False)
     description: Mapped[str | None] = mapped_column(String(255), nullable=True)
 
+    # Compat con routes/front
+    goal_type: Mapped[str] = mapped_column(String(40), nullable=False, default="custom")
+    frequency: Mapped[str] = mapped_column(String(20), nullable=False, default="flexible")
+    start_date: Mapped[date | None] = mapped_column(Date, nullable=True)
+    end_date: Mapped[date | None] = mapped_column(Date, nullable=True)
+
+    size: Mapped[GoalSize] = mapped_column(
+        SAEnum(GoalSize), nullable=False, default=GoalSize.medium
+    )
     # Compat con routes.py (y tu checkpoint)
     goal_type: Mapped[str] = mapped_column(
         String(40), nullable=False, default="custom")
@@ -391,6 +403,9 @@ class Goal(db.Model):
         SAEnum(GoalSize), nullable=False, default=GoalSize.medium)
 
     target_value: Mapped[int] = mapped_column(Integer, nullable=False)
+    current_value: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
+
+    points_reward: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
     current_value: Mapped[int] = mapped_column(
         Integer, nullable=False, default=0)
 
@@ -425,11 +440,16 @@ class Goal(db.Model):
             "start_date": self.start_date.isoformat() if self.start_date else None,
             "end_date": self.end_date.isoformat() if self.end_date else None,
 
+            "goal_type": self.goal_type,
+            "frequency": self.frequency,
+            "start_date": self.start_date.isoformat() if self.start_date else None,
+            "end_date": self.end_date.isoformat() if self.end_date else None,
             "size": self.size.value,
             "target_value": self.target_value,
             "current_value": self.current_value,
             "points_reward": int(self.points_reward or 0),
 
+            "points_reward": int(self.points_reward or 0),
             "is_active": self.is_active,
             "completed_at": self.completed_at.isoformat() + "Z" if self.completed_at else None,
             "created_at": self.created_at.isoformat() + "Z",

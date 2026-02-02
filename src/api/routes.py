@@ -4,7 +4,7 @@ from datetime import datetime, timedelta, timezone, date
 
 from flask import request, jsonify, Blueprint
 from flask_cors import CORS
-from flask_jwt_extended import create_access_token, jwt_required, get_jwt_identity
+from flask_jwt_extended import create_access_token, jwt_required, get_jwt_identity,decode_token
 from werkzeug.security import generate_password_hash
 
 from api.models import (
@@ -24,17 +24,21 @@ from api.models import (
     GoalProgress,
     GoalSize,
     DailySessionGoal,
+    Reminder,
+    ReminderType,
+    ReminderMode
 )
-
-from api.service_loops.welcome_user import (
-    send_welcome_transactional,
-    LoopsError as WelcomeLoopsError,
-)
+from flask_cors import CORS
+from datetime import time as dtime
+from datetime import datetime, timedelta, timezone
+from flask_jwt_extended import create_access_token, jwt_required, get_jwt_identity
+from api.service_loops.welcome_user import send_welcome_transactional , LoopsError
 from api.service_loops.reset_password import send_password_reset
-from api.service_loops.verify_email import (
-    send_verify_email,
-    LoopsError as VerifyLoopsError,
-)
+from api.service_loops.verify_email import send_verify_email , LoopsError
+from api.service_loops.inactive_reminder import send_inactive_reminder , LoopsError
+from zoneinfo import ZoneInfo
+import os
+from werkzeug.security import generate_password_hash
 
 api = Blueprint("api", __name__)
 CORS(api)
@@ -52,6 +56,56 @@ def handle_hello():
 # -------------------------
 # HELPERS
 # -------------------------
+
+def _as_utc_aware(dt):
+    if dt is None:
+        return None
+    # Si viene naive desde la DB, asumimos que es UTC
+    if dt.tzinfo is None:
+        return dt.replace(tzinfo=timezone.utc)
+    return dt.astimezone(timezone.utc)
+
+def _parse_hhmm(s: str):
+    """
+    "09:00" -> datetime.time(9,0)
+    """
+    if not s:
+        return None
+    try:
+        hh, mm = s.strip().split(":")
+        return dtime(int(hh), int(mm))
+    except Exception:
+        return None
+
+def _normalize_days_of_week(s: str):
+    """
+    Acepta:
+      - "daily"
+      - "mon,tue,wed"
+    Devuelve string normalizado.
+    """
+    if not s:
+        return "daily"
+    s = s.strip().lower()
+
+    if s == "daily":
+        return "daily"
+
+    valid = {"mon","tue","wed","thu","fri","sat","sun"}
+    parts = [p.strip() for p in s.split(",") if p.strip()]
+    if not parts:
+        return "daily"
+    if any(p not in valid for p in parts):
+        return None
+
+    # dedupe preservando orden
+    seen = set()
+    out = []
+    for p in parts:
+        if p not in seen:
+            seen.add(p)
+            out.append(p)
+    return ",".join(out)
 
 def _daterange_days(start_date: date, end_date: date):
     days = []
@@ -376,40 +430,27 @@ def register():
         username=username,
         timezone=tz_str,
         created_at=datetime.now(timezone.utc),
+        is_email_verified=False, 
+        email_verified_at=None,  
     )
     user.set_password(password)
 
     db.session.add(user)
     db.session.commit()
 
-    # Loops: welcome (best-effort)
-    try:
-        transactional_id = os.getenv("LOOPS_WELCOME_TRANSACTIONAL_ID")
-        if not transactional_id:
-            raise WelcomeLoopsError(
-                "Falta LOOPS_WELCOME_TRANSACTIONAL_ID en el .env")
-
-        send_welcome_transactional(
-            email=user.email,
-            transactional_id=transactional_id,
-            data=user.username.capitalize(),
-        )
-    except Exception as e:
-        print("Error Loops welcome (debug):", repr(e))
-
-    # Loops: verify email (best-effort)
     try:
         verify_id = os.getenv("LOOPS_VERIFY_EMAIL_TRANSACTIONAL_ID")
         if not verify_id:
-            raise VerifyLoopsError("Falta LOOPS_VERIFY_EMAIL_TRANSACTIONAL_ID")
+            raise LoopsError("Falta LOOPS_VERIFY_EMAIL_TRANSACTIONAL_ID")
 
-        verify_token = create_access_token(identity=str(
-            user.id), expires_delta=timedelta(hours=24))
+        verify_token = create_access_token(
+            identity=str(user.id),
+            expires_delta=timedelta(hours=24),
+            additional_claims={"type": "verify_email"}
+        )
 
-        # OJO: idealmente FRONTEND_URL y una ruta real del front
-        frontend_url = (os.getenv("FRONTEND_URL")
-                        or "http://localhost:3000").rstrip("/")
-        verify_url = f"{frontend_url}/auth/verify?token={verify_token}"
+        frontend_base = (os.getenv("VITE_FRONTEND_URL") or "").rstrip("/")
+        verify_url = f"{frontend_base}/verify-email?token={verify_token}"
 
         send_verify_email(
             email=user.email,
@@ -448,15 +489,59 @@ def login():
     return jsonify({"access_token": access_token, "user": user.serialize()}), 200
 
 
-# --------------------------
+@api.route("/verify-email", methods=["GET"])
+def verify_email():
+    token = (request.args.get("token") or "").strip()
+    if not token:
+        return jsonify({"msg": "Falta token"}), 400
+
+    try:
+        decoded = decode_token(token)  
+
+        if decoded.get("type") != "verify_email":
+            return jsonify({"msg": "Token inválido (tipo incorrecto)"}), 400
+
+        user_id = decoded.get("sub") 
+        user = User.query.get(int(user_id)) if user_id else None
+        if not user:
+            return jsonify({"msg": "Usuario no existe"}), 404
+
+        
+        if user.is_email_verified:
+            return jsonify({"msg": "Email ya estaba verificado"}), 200
+
+       
+        user.is_email_verified = True
+        user.email_verified_at = datetime.now(timezone.utc)
+        db.session.commit()
+
+        
+        try:
+            transactional_id = os.getenv("LOOPS_WELCOME_TRANSACTIONAL_ID")
+            if not transactional_id:
+                raise LoopsError("Falta LOOPS_WELCOME_TRANSACTIONAL_ID en el .env")
+
+            send_welcome_transactional(
+                email=user.email,
+                transactional_id=transactional_id,
+                data=user.username.capitalize(),
+            )
+        except Exception as e:
+            print("Error Loops welcome (debug):", repr(e))
+
+        return jsonify({"msg": "Email verificado con éxito"}), 200
+
+    except Exception as e:
+        print("Error verify-email (debug):", repr(e))
+        return jsonify({"msg": "Token inválido o expirado"}), 400
+
+#--------------------------
 # PASSWORD RESET
 # --------------------------
 
 @api.route("/auth/forgot-password", methods=["POST"])
 def forgot_password():
-    """
-    Respuesta siempre 200 para evitar enumeración de emails.
-    """
+    
     body = request.get_json(silent=True) or {}
     email = (body.get("email") or "").strip().lower()
 
@@ -464,16 +549,18 @@ def forgot_password():
         return jsonify({"msg": "email es obligatorio"}), 400
 
     user = User.query.filter_by(email=email).first()
-    if user:
-        token = create_access_token(identity=str(
-            user.id), expires_delta=timedelta(hours=1))
-        frontend_url = (os.getenv("FRONTEND_URL")
-                        or "http://localhost:3000").rstrip("/")
-        url_reset = f"{frontend_url}/auth/reset?token={token}"
-        try:
-            send_password_reset(email, url_reset)
-        except Exception as e:
-            print("Error send_password_reset (debug):", repr(e))
+
+    if not user:
+        return jsonify({"msg": "Si el email existe, recibirás un enlace para restablecer tu contraseña."}), 404
+
+    token = create_access_token(
+    identity=str(user.id),
+    expires_delta=timedelta(hours=1)
+)
+    
+    url_reset = os.getenv('VITE_FRONTEND_URL') + "auth/reset?token=" + token
+    
+    send_password_reset(email, url_reset)
 
     return jsonify({"msg": "Si el email existe, recibirás un enlace para restablecer tu contraseña."}), 200
 
@@ -481,10 +568,7 @@ def forgot_password():
 @api.route("/auth/reset-password", methods=["POST"])
 @jwt_required()
 def reset_password():
-    """
-    Token JWT viene en Authorization (Bearer), identity = user_id.
-    Body: { "password": "..." }
-    """
+    
     body = request.get_json(silent=True) or {}
     password = body.get("password")
 
@@ -560,6 +644,9 @@ def create_or_get_session():
         )
         db.session.add(session)
         db.session.commit()
+
+    user.last_activity_at = datetime.now(timezone.utc)
+    db.session.commit()
 
     return jsonify(session.serialize()), 200
 
@@ -819,6 +906,7 @@ def complete_activity():
         points_awarded=points
     )
     session.points_earned = int(session.points_earned or 0) + points
+    user.last_activity_at = datetime.now(timezone.utc)
 
     db.session.add(completion)
     db.session.commit()
@@ -897,6 +985,7 @@ def create_emotion_checkin():
     )
 
     db.session.add(checkin)
+    user.last_activity_at = datetime.now(timezone.utc)
     db.session.commit()
 
     return jsonify({
@@ -1323,6 +1412,265 @@ def dev_deactivate_activity():
     db.session.commit()
 
     return jsonify({"msg": "Actividad desactivada", "external_id": external_id}), 200
+
+#-------------------------
+#REMINDERS
+#-------------------------
+
+@api.route("/reminders", methods=["GET"])
+@jwt_required()
+def list_reminders():
+    user_id = int(get_jwt_identity())
+
+    reminders = Reminder.query.filter_by(user_id=user_id).order_by(Reminder.id.desc()).all()
+    return jsonify([r.serialize() for r in reminders]), 200
+
+@api.route("/reminders", methods=["POST"])
+@jwt_required()
+def create_reminder():
+    user_id = int(get_jwt_identity())
+    body = request.get_json(silent=True) or {}
+
+    # required
+    reminder_type_raw = (body.get("reminder_type") or "").strip()
+    mode_raw = (body.get("mode") or "").strip()
+
+    if reminder_type_raw not in [t.value for t in ReminderType]:
+        return jsonify({"msg": "reminder_type inválido"}), 400
+
+    if mode_raw not in [m.value for m in ReminderMode]:
+        return jsonify({"msg": "mode inválido"}), 400
+
+    reminder_type = ReminderType(reminder_type_raw)
+    mode = ReminderMode(mode_raw)
+
+    # optional
+    days_of_week = _normalize_days_of_week(body.get("days_of_week") or "daily")
+    if days_of_week is None:
+        return jsonify({"msg": "days_of_week inválido. Usa 'daily' o 'mon,tue,wed'"}), 400
+
+    local_time = None
+    inactive_after_minutes = None
+
+    if mode == ReminderMode.fixed:
+        lt = _parse_hhmm(body.get("local_time") or "")
+        if not lt:
+            return jsonify({"msg": "local_time inválido. Ej: '09:00'"}), 400
+        local_time = lt
+
+    if mode == ReminderMode.inactivity:
+        try:
+            inactive_after_minutes = int(body.get("inactive_after_minutes"))
+        except Exception:
+            return jsonify({"msg": "inactive_after_minutes debe ser int"}), 400
+
+        if inactive_after_minutes <= 0:
+            return jsonify({"msg": "inactive_after_minutes debe ser > 0"}), 400
+
+    if reminder_type == ReminderType.inactive_nudge:
+        existing = Reminder.query.filter_by(
+            user_id=user_id,
+            reminder_type=ReminderType.inactive_nudge,
+            is_active=True
+        ).first()
+        if existing:
+            return jsonify({"msg": "Ya tienes un inactive_nudge activo. Edita el existente."}), 409
+
+    r = Reminder(
+        user_id=user_id,
+        reminder_type=reminder_type,
+        mode=mode,
+        local_time=local_time,
+        inactive_after_minutes=inactive_after_minutes,
+        days_of_week=days_of_week,
+        is_active=True
+    )
+
+    db.session.add(r)
+    db.session.commit()
+
+    return jsonify({"msg": "Reminder creado", "reminder": r.serialize()}), 201
+
+@api.route("/reminders/<int:reminder_id>", methods=["PUT"])
+@jwt_required()
+def update_reminder(reminder_id):
+    user_id = int(get_jwt_identity())
+    r = Reminder.query.filter_by(id=reminder_id, user_id=user_id).first()
+    if not r:
+        return jsonify({"msg": "Reminder no encontrado"}), 404
+
+    body = request.get_json(silent=True) or {}
+
+   
+    if "is_active" in body:
+        r.is_active = bool(body.get("is_active"))
+
+    if "days_of_week" in body:
+        days_of_week = _normalize_days_of_week(body.get("days_of_week") or "daily")
+        if days_of_week is None:
+            return jsonify({"msg": "days_of_week inválido. Usa 'daily' o 'mon,tue,wed'"}), 400
+        r.days_of_week = days_of_week
+
+    
+    if "mode" in body:
+        mode_raw = (body.get("mode") or "").strip()
+        if mode_raw not in [m.value for m in ReminderMode]:
+            return jsonify({"msg": "mode inválido"}), 400
+        r.mode = ReminderMode(mode_raw)
+
+    
+    if r.mode == ReminderMode.fixed:
+        if "local_time" in body:
+            lt = _parse_hhmm(body.get("local_time") or "")
+            if not lt:
+                return jsonify({"msg": "local_time inválido. Ej: '09:00'"}), 400
+            r.local_time = lt
+        
+        r.inactive_after_minutes = None
+
+    if r.mode == ReminderMode.inactivity:
+        if "inactive_after_minutes" in body:
+            try:
+                mins = int(body.get("inactive_after_minutes"))
+            except Exception:
+                return jsonify({"msg": "inactive_after_minutes debe ser int"}), 400
+            if mins <= 0:
+                return jsonify({"msg": "inactive_after_minutes debe ser > 0"}), 400
+            r.inactive_after_minutes = mins
+        
+        r.local_time = None
+
+    db.session.commit()
+    return jsonify({"msg": "Reminder actualizado", "reminder": r.serialize()}), 200
+
+@api.route("/reminders/<int:reminder_id>", methods=["DELETE"])
+@jwt_required()
+def delete_reminder(reminder_id):
+    user_id = int(get_jwt_identity())
+    r = Reminder.query.filter_by(id=reminder_id, user_id=user_id).first()
+    if not r:
+        return jsonify({"msg": "Reminder no encontrado"}), 404
+
+    # Soft delete
+    r.is_active = False
+    db.session.commit()
+
+    return jsonify({"msg": "Reminder desactivado"}), 200
+
+# -------------------------
+# ENVIAR REMINDERS (INACTIVOS)
+# -------------------------
+@api.route("/tasks/send-reminders", methods=["POST"])
+def task_send_reminders():
+    # Seguridad simple: solo tu cron/servicio interno debe llamar esto
+    internal_token = request.headers.get("X-Internal-Token")
+    if internal_token != os.getenv("INTERNAL_TASK_TOKEN"):
+        return jsonify({"msg": "Unauthorized"}), 401
+
+    def dev_only():
+        return os.getenv("FLASK_DEBUG") == "1"
+
+    # Modo demo: /tasks/send-reminders?force=1
+    force = (request.args.get("force") == "1")
+    if force and not dev_only():
+        # En prod no permitimos force
+        return jsonify({"msg": "Not found"}), 404
+
+    now_utc = datetime.now(timezone.utc)
+
+    # Trae reminders activos de tipo inactive_nudge
+    reminders = Reminder.query.filter_by(
+        is_active=True,
+        reminder_type=ReminderType.inactive_nudge
+    ).all()
+
+    sent = 0
+    skipped = 0
+    errors = 0
+
+    frontend_url = (os.getenv("VITE_FRONTEND_URL") or "").rstrip("/")
+    url_app = f"{frontend_url}/" if frontend_url else "/"
+
+    for r in reminders:
+        user = User.query.get(r.user_id)
+        if not user:
+            skipped += 1
+            continue
+
+        # Solo usuarios verificados
+        if not user.is_email_verified:
+            skipped += 1
+            continue
+
+        # Solo modo inactivity
+        if r.mode != ReminderMode.inactivity:
+            skipped += 1
+            continue
+
+        # Requiere umbral en minutos (ej 1440)
+        if not r.inactive_after_minutes:
+            skipped += 1
+            continue
+
+    
+        last_sent = _as_utc_aware(r.last_sent_at)
+
+        if last_sent and (now_utc - last_sent) < timedelta(hours=24):
+            skipped += 1
+            continue
+
+        # --- Reglas reales (si NO es force) ---
+        if not force:
+            # 1) Regla 24h
+            last = user.last_activity_at or user.last_login_at or user.created_at
+            last = _as_utc_aware(last)
+
+            diff_minutes = int((now_utc - last).total_seconds() // 60)
+
+            if diff_minutes < int(r.inactive_after_minutes):
+                skipped += 1
+                continue
+
+            # 2) Ventana de envío: desde local_time (ej 09:00) en hora local del usuario
+            # Si r.local_time es None, se permite enviar a cualquier hora (solo 24h aplica)
+            if r.local_time:
+                try:
+                    user_tz = ZoneInfo(user.timezone or "UTC")
+                except Exception:
+                    user_tz = ZoneInfo("UTC")
+
+                now_local = now_utc.astimezone(user_tz)
+
+                # Si aún no son las 09:00 local, no envíes
+                if now_local.time() < r.local_time:
+                    skipped += 1
+                    continue
+
+        # --- Enviar correo ---
+        try:
+            send_inactive_reminder(
+                email=user.email,
+                username=user.username,
+                url_app=url_app
+            )
+            r.last_sent_at = now_utc
+            db.session.commit()
+            sent += 1
+
+        except Exception as e:
+            print("Error Loops inactive reminder:", repr(e))
+            db.session.rollback()
+            errors += 1
+
+    return jsonify({
+        "ok": True,
+        "processed": len(reminders),
+        "sent": sent,
+        "skipped": skipped,
+        "errors": errors,
+        "force": force
+    }), 200
+
 
 # -------------------------
 # GOALS
