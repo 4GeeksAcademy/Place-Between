@@ -11,6 +11,8 @@ import { ToastHost } from "../components/toasts/ToastHost.jsx";
 
 export const AppLayout = () => {
 	const navigate = useNavigate();
+	const token = localStorage.getItem("pb_token");
+	const BACKEND_URL = import.meta.env.VITE_BACKEND_URL;
 	const [musicUrl, setMusicUrl] = useState(null);
 	const [soundEnabled, setSoundEnabled] = useState(false);
 
@@ -27,43 +29,36 @@ export const AppLayout = () => {
 		return hour >= 19 || hour < 6;
 	}, []);
 
-	const fetchMusic = async () => {
-		if (!token) return;
+ useEffect(() => {
+    const fetchMusic = async () => {
+      const res = await fetch(`${BACKEND_URL}/api/music/default`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      const data = await res.json();
+      if (data?.url_music) setMusicUrl(data.url_music);
+    };
 
-		try {
-			const res = await fetch(`${BACKEND_URL}/api/music`, {
-				headers: { Authorization: `Bearer ${token}` },
-			});
+    fetchMusic();
+  }, [BACKEND_URL, token]);
 
-			const data = await res.json();
-			if (data?.url_music) {
-				setMusicUrl(data.url_music);
-			}
-		} catch (err) {
-			console.error("Error fetching background music", err);
-		}
-	};
 
-	// fetch musica
-	useEffect(() => {
-		fetchMusic();
-	}, []);
+const enableSound = () => setSoundEnabled(true);
 
-	const enableSound = () => setSoundEnabled(true);
+useEffect(() => {
+	console.log("musicUrl:", musicUrl, "soundEnabled:", soundEnabled);
+}, [musicUrl, soundEnabled]);
 
-	useEffect(() => {
-		console.log("musicUrl:", musicUrl, "soundEnabled:", soundEnabled);
-	}, [musicUrl, soundEnabled]);
-
-	return (
-		<ToastProvider>
-			<MusicPlayerContext.Provider value={{ fetchMusic, enableSound }}>
-				{soundEnabled && musicUrl && <MusicPlayer url={musicUrl} />}
-				<AppNavbar />
-				<ToastHost isNight={isNight} />
-				<Outlet />
-				{/* Sin footer en área privada */}
-			</MusicPlayerContext.Provider>
-		</ToastProvider>
-	);
+return (
+	<ToastProvider>
+		<MusicPlayerContext.Provider value={{ enableSound }}> 
+			{soundEnabled && musicUrl && <MusicPlayer url={musicUrl} />}
+			<AppNavbar />
+			<ToastHost isNight={isNight} />
+			<Outlet />
+			{/* Sin footer en área privada */}
+		</MusicPlayerContext.Provider>
+	</ToastProvider>
+);
 };
+
+

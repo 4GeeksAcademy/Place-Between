@@ -1,2 +1,2 @@
 import { createContext } from "react";
-export const MusicPlayerContext = createContext(null);
+export const MusicPlayerContext = createContext(null); 

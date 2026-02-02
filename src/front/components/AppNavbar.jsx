@@ -57,7 +57,7 @@ export const AppNavbar = () => {
 							Salir
 						</button>
 						<button type="button" className="btn btn-outline-secondary" onClick={enableSound}>
-								📢
+							{enableSound? "🔊" : "🔇"}
 						</button>
 					</div>
 				</div>
