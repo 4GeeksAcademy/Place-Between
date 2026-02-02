@@ -1,0 +1,17 @@
+{% extends 'admin/master.html' %}
+{% block body %}
+  <div class="container mt-4">
+    <h3>Dev Tools</h3>
+    <p>Acciones de desarrollo (solo con FLASK_DEBUG=1).</p>
+
+    <form method="post" action="{{ url_for('devtools.seed_activities') }}">
+      <button class="btn btn-primary">Seed Activities (presets)</button>
+    </form>
+
+    <hr />
+
+    <form method="post" action="{{ url_for('devtools.seed_goal_templates') }}">
+      <button class="btn btn-success">Seed Goal Templates (presets)</button>
+    </form>
+  </div>
+{% endblock %}

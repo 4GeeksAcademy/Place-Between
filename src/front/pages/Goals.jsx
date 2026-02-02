@@ -1,268 +1,537 @@
+// src/front/pages/Goals.jsx
 import React, { useEffect, useMemo, useState } from "react";
 import {
-    listGoals,
-    createGoal,
-    deleteGoal,
     addGoalProgress,
     completeGoal,
+    createGoal,
+    deleteGoal,
+    listGoals,
 } from "../services/goalsService";
 
-export const Goals = () => {
-    const [items, setItems] = useState([]);
-    const [busy, setBusy] = useState(false);
-    const [err, setErr] = useState("");
+import {
+    goalTemplatesCatalog,
+    getGoalTemplateCategories,
+    GOAL_FREQUENCIES,
+    GOAL_SIZES,
+} from "../data/goalTemplates";
 
-    // form create
-    const [title, setTitle] = useState("");
-    const [description, setDescription] = useState("");
-    const [size, setSize] = useState("medium");
-    const [targetValue, setTargetValue] = useState(10);
-    const [pointsReward, setPointsReward] = useState(10);
+import "../styles/pb-goals.css";
 
-    const sorted = useMemo(() => {
-        return [...items].sort((a, b) => (b.created_at || "").localeCompare(a.created_at || ""));
-    }, [items]);
+function clampInt(value, fallback) {
+    const n = Number.parseInt(value, 10);
+    return Number.isFinite(n) ? n : fallback;
+}
 
-    async function refresh() {
-        setErr("");
-        setBusy(true);
+function pct(current, target) {
+    const t = Math.max(0, Number(target) || 0);
+    if (t === 0) return 0;
+    const c = Math.max(0, Number(current) || 0);
+    return Math.max(0, Math.min(100, Math.round((c / t) * 100)));
+}
+
+function freqLabel(f) {
+    if (f === "daily") return "Diario";
+    if (f === "weekly") return "Semanal";
+    if (f === "monthly") return "Mensual";
+    return "Flexible";
+}
+
+function sizeLabel(s) {
+    if (s === "small") return "Pequeño";
+    if (s === "medium") return "Medio";
+    if (s === "large") return "Grande";
+    return s || "-";
+}
+
+export default function Goals() {
+    const [tab, setTab] = useState("templates"); // templates | mygoals
+    const [loading, setLoading] = useState(false);
+    const [error, setError] = useState("");
+
+    const [goals, setGoals] = useState([]);
+
+    // Filters (templates)
+    const categories = useMemo(() => ["Todas", ...getGoalTemplateCategories()], []);
+    const [fCategory, setFCategory] = useState("Todas");
+    const [fFreq, setFFreq] = useState("all");
+    const [fSize, setFSize] = useState("all");
+    const [q, setQ] = useState("");
+
+    // Create custom goal
+    const [cTitle, setCTitle] = useState("");
+    const [cDesc, setCDesc] = useState("");
+    const [cCategory, setCCategory] = useState("Físico");
+    const [cFreq, setCFreq] = useState("daily");
+    const [cSize, setCSize] = useState("small");
+    const [cTarget, setCTarget] = useState(5);
+    const [cPoints, setCPoints] = useState(10);
+
+    async function refreshGoals() {
+        setError("");
+        setLoading(true);
         try {
             const data = await listGoals();
-            setItems(Array.isArray(data) ? data : []);
+            // asume que backend devuelve lista
+            setGoals(Array.isArray(data) ? data : data.items || []);
         } catch (e) {
-            setErr(e.message || "Error cargando goals.");
+            setError(e.message || "No se pudo cargar Goals");
         } finally {
-            setBusy(false);
+            setLoading(false);
         }
     }
 
     useEffect(() => {
-        refresh();
+        refreshGoals();
     }, []);
 
-    const handleCreate = async (e) => {
+    const filteredTemplates = useMemo(() => {
+        const qq = q.trim().toLowerCase();
+        return goalTemplatesCatalog.filter((t) => {
+            if (fCategory !== "Todas" && t.category !== fCategory) return false;
+            if (fFreq !== "all" && t.frequency !== fFreq) return false;
+            if (fSize !== "all" && t.size !== fSize) return false;
+
+            if (!qq) return true;
+            const hay = `${t.title} ${t.description || ""} ${t.category}`.toLowerCase();
+            return hay.includes(qq);
+        });
+    }, [fCategory, fFreq, fSize, q]);
+
+    async function onAddFromTemplate(tpl) {
+        setError("");
+        setLoading(true);
+        try {
+            await createGoal({
+                title: tpl.title,
+                description: tpl.description || null,
+                frequency: tpl.frequency,
+                size: tpl.size,
+                target_value: tpl.target_value,
+                points_reward: tpl.points_reward,
+                goal_type: tpl.category, // V1: guardamos categoría aquí
+            });
+            await refreshGoals();
+            setTab("mygoals");
+        } catch (e) {
+            setError(e.message || "No se pudo crear Goal");
+        } finally {
+            setLoading(false);
+        }
+    }
+
+    async function onCreateCustom(e) {
         e.preventDefault();
-        setErr("");
-        setBusy(true);
+        setError("");
+
+        const title = cTitle.trim();
+        if (!title) {
+            setError("El título es obligatorio.");
+            return;
+        }
+
+        const target_value = Math.max(0, clampInt(cTarget, 1));
+        const points_reward = Math.max(0, clampInt(cPoints, 0));
+
+        setLoading(true);
         try {
-            const payload = {
+            await createGoal({
                 title,
-                description,
-                size,
-                target_value: Number(targetValue),
-                points_reward: Number(pointsReward),
-            };
-            const created = await createGoal(payload);
-            setItems((prev) => [created, ...prev]);
-            setTitle("");
-            setDescription("");
-            setSize("medium");
-            setTargetValue(10);
-            setPointsReward(10);
+                description: cDesc.trim() || null,
+                frequency: cFreq,
+                size: cSize,
+                target_value,
+                points_reward,
+                goal_type: cCategory, // V1: categoría
+            });
+            setCTitle("");
+            setCDesc("");
+            await refreshGoals();
+            setTab("mygoals");
         } catch (e2) {
-            setErr(e2.message || "Error creando goal.");
+            setError(e2.message || "No se pudo crear Goal");
         } finally {
-            setBusy(false);
+            setLoading(false);
         }
-    };
+    }
 
-    const handleDelete = async (id) => {
-        setErr("");
-        setBusy(true);
+    async function onProgress(goalId, delta) {
+        setError("");
+        setLoading(true);
         try {
-            await deleteGoal(id);
-            setItems((prev) => prev.filter((g) => g.id !== id));
+            await addGoalProgress(goalId, delta);
+            await refreshGoals();
         } catch (e) {
-            setErr(e.message || "Error borrando goal.");
+            setError(e.message || "No se pudo añadir progreso");
         } finally {
-            setBusy(false);
+            setLoading(false);
         }
-    };
+    }
 
-    const handleProgress = async (id, delta) => {
-        setErr("");
-        setBusy(true);
+    async function onComplete(goalId) {
+        setError("");
+        setLoading(true);
         try {
-            await addGoalProgress(id, { delta_value: Number(delta) });
-            // refresh rápido (para tener current_value actualizado)
-            await refresh();
+            await completeGoal(goalId);
+            await refreshGoals();
         } catch (e) {
-            setErr(e.message || "Error añadiendo progreso.");
+            setError(e.message || "No se pudo completar");
         } finally {
-            setBusy(false);
+            setLoading(false);
         }
-    };
+    }
 
-    const handleComplete = async (id) => {
-        setErr("");
-        setBusy(true);
+    async function onDelete(goalId) {
+        setError("");
+        setLoading(true);
         try {
-            await completeGoal(id); // daily_session_id opcional -> backend crea/usa DAY hoy
-            await refresh();
+            await deleteGoal(goalId);
+            await refreshGoals();
         } catch (e) {
-            setErr(e.message || "Error completando goal.");
+            setError(e.message || "No se pudo eliminar");
         } finally {
-            setBusy(false);
+            setLoading(false);
         }
-    };
+    }
+
+    const activeGoals = useMemo(() => {
+        const list = Array.isArray(goals) ? goals : [];
+        return list.slice().sort((a, b) => {
+            const aDone = !!a.completed_at;
+            const bDone = !!b.completed_at;
+            if (aDone !== bDone) return aDone ? 1 : -1;
+            return (b.id || 0) - (a.id || 0);
+        });
+    }, [goals]);
 
     return (
-        <div className="container py-4 pb-goals">
-            <div className="d-flex align-items-center justify-content-between gap-3 mb-3">
+        <div className="pb-goals pb-page">
+            <div className="pb-goals__header">
                 <div>
-                    <h1 className="h4 mb-1">Objetivos</h1>
-                    <div className="text-muted small">Crea, registra progreso y completa (suma puntos en sesión DAY de hoy).</div>
+                    <h1 className="pb-title">Objetivos</h1>
+                    <p className="pb-subtitle">
+                        Elige una plantilla o crea un objetivo propio. Suma puntos al completar.
+                    </p>
                 </div>
-                <button className="btn btn-outline-secondary" onClick={refresh} disabled={busy}>
-                    Actualizar
+
+                <div className="pb-goals__actions">
+                    <button
+                        className="pb-btn pb-btn--ghost"
+                        onClick={refreshGoals}
+                        disabled={loading}
+                    >
+                        Actualizar
+                    </button>
+                </div>
+            </div>
+
+            {error ? <div className="pb-alert pb-alert--error">{error}</div> : null}
+
+            <div className="pb-tabs">
+                <button
+                    className={`pb-tab ${tab === "templates" ? "is-active" : ""}`}
+                    onClick={() => setTab("templates")}
+                >
+                    Plantillas
+                </button>
+                <button
+                    className={`pb-tab ${tab === "mygoals" ? "is-active" : ""}`}
+                    onClick={() => setTab("mygoals")}
+                >
+                    Mis objetivos
                 </button>
             </div>
 
-            {err ? (
-                <div className="alert alert-danger" role="alert">
-                    {err}
-                </div>
-            ) : null}
+            <div className="pb-goals__grid">
+                {/* LEFT */}
+                <div className="pb-col">
+                    {tab === "templates" ? (
+                        <div className="pb-card">
+                            <div className="pb-card__header">
+                                <h2 className="pb-card__title">Plantillas</h2>
+                                <div className="pb-chip">Presets</div>
+                            </div>
 
-            <div className="card mb-4">
-                <div className="card-body">
-                    <h2 className="h6 mb-3">Crear objetivo</h2>
-                    <form className="row g-3" onSubmit={handleCreate}>
-                        <div className="col-12 col-lg-5">
-                            <label className="form-label">Título</label>
-                            <input
-                                className="form-control"
-                                value={title}
-                                onChange={(e) => setTitle(e.target.value)}
-                                placeholder="Ej: Caminar"
-                                required
-                                disabled={busy}
-                            />
-                        </div>
+                            <div className="pb-filters">
+                                <div className="pb-field">
+                                    <label>Categoría</label>
+                                    <select value={fCategory} onChange={(e) => setFCategory(e.target.value)}>
+                                        {categories.map((c) => (
+                                            <option key={c} value={c}>
+                                                {c}
+                                            </option>
+                                        ))}
+                                    </select>
+                                </div>
 
-                        <div className="col-12 col-lg-7">
-                            <label className="form-label">Descripción</label>
-                            <input
-                                className="form-control"
-                                value={description}
-                                onChange={(e) => setDescription(e.target.value)}
-                                placeholder="Opcional"
-                                disabled={busy}
-                            />
-                        </div>
+                                <div className="pb-field">
+                                    <label>Frecuencia</label>
+                                    <select value={fFreq} onChange={(e) => setFFreq(e.target.value)}>
+                                        <option value="all">Todas</option>
+                                        {GOAL_FREQUENCIES.map((f) => (
+                                            <option key={f} value={f}>
+                                                {freqLabel(f)}
+                                            </option>
+                                        ))}
+                                    </select>
+                                </div>
 
-                        <div className="col-6 col-lg-3">
-                            <label className="form-label">Tamaño</label>
-                            <select className="form-select" value={size} onChange={(e) => setSize(e.target.value)} disabled={busy}>
-                                <option value="small">Small</option>
-                                <option value="medium">Medium</option>
-                                <option value="large">Large</option>
-                            </select>
-                        </div>
+                                <div className="pb-field">
+                                    <label>Tamaño</label>
+                                    <select value={fSize} onChange={(e) => setFSize(e.target.value)}>
+                                        <option value="all">Todos</option>
+                                        {GOAL_SIZES.map((s) => (
+                                            <option key={s} value={s}>
+                                                {sizeLabel(s)}
+                                            </option>
+                                        ))}
+                                    </select>
+                                </div>
 
-                        <div className="col-6 col-lg-3">
-                            <label className="form-label">Target</label>
-                            <input
-                                className="form-control"
-                                type="number"
-                                min="0"
-                                value={targetValue}
-                                onChange={(e) => setTargetValue(e.target.value)}
-                                disabled={busy}
-                            />
-                        </div>
+                                <div className="pb-field pb-field--wide">
+                                    <label>Buscar</label>
+                                    <input
+                                        value={q}
+                                        onChange={(e) => setQ(e.target.value)}
+                                        placeholder="agua, caminar, respiración…"
+                                    />
+                                </div>
+                            </div>
 
-                        <div className="col-6 col-lg-3">
-                            <label className="form-label">Recompensa (pts)</label>
-                            <input
-                                className="form-control"
-                                type="number"
-                                min="0"
-                                value={pointsReward}
-                                onChange={(e) => setPointsReward(e.target.value)}
-                                disabled={busy}
-                            />
-                        </div>
-
-                        <div className="col-6 col-lg-3 d-flex align-items-end">
-                            <button className="btn btn-primary w-100" disabled={busy}>
-                                Crear
-                            </button>
-                        </div>
-                    </form>
-                </div>
-            </div>
-
-            <div className="d-flex align-items-center justify-content-between mb-2">
-                <h2 className="h6 mb-0">Listado</h2>
-                {busy ? <span className="text-muted small">Cargando…</span> : null}
-            </div>
-
-            {sorted.length === 0 ? (
-                <div className="text-muted">Aún no hay objetivos.</div>
-            ) : (
-                <div className="row g-3">
-                    {sorted.map((g) => {
-                        const done = !!g.completed_at;
-                        const cur = Number(g.current_value || 0);
-                        const tgt = Number(g.target_value || 0);
-                        const pct = tgt > 0 ? Math.min(100, Math.round((cur / tgt) * 100)) : 0;
-
-                        return (
-                            <div className="col-12 col-lg-6" key={g.id}>
-                                <div className={`card ${done ? "border-success" : ""}`}>
-                                    <div className="card-body">
-                                        <div className="d-flex align-items-start justify-content-between gap-3">
-                                            <div className="flex-grow-1">
-                                                <div className="d-flex align-items-center gap-2">
-                                                    <h3 className="h6 mb-0">{g.title}</h3>
-                                                    {done ? <span className="badge text-bg-success">Completado</span> : null}
+                            <div className="pb-list">
+                                {filteredTemplates.length === 0 ? (
+                                    <div className="pb-empty">No hay plantillas con esos filtros.</div>
+                                ) : (
+                                    filteredTemplates.map((t) => (
+                                        <div key={t.id} className="pb-item">
+                                            <div className="pb-item__main">
+                                                <div className="pb-item__title">{t.title}</div>
+                                                <div className="pb-item__meta">
+                                                    <span className="pb-tag">{t.category}</span>
+                                                    <span className="pb-tag">{freqLabel(t.frequency)}</span>
+                                                    <span className="pb-tag">{sizeLabel(t.size)}</span>
+                                                    <span className="pb-tag">{t.points_reward} pts</span>
                                                 </div>
-                                                {g.description ? <div className="text-muted small mt-1">{g.description}</div> : null}
-
-                                                <div className="mt-3">
-                                                    <div className="d-flex justify-content-between small text-muted">
-                                                        <span>
-                                                            Progreso: <strong className="text-body">{cur}</strong> / {tgt}
-                                                        </span>
-                                                        <span>{pct}%</span>
-                                                    </div>
-                                                    <div className="progress mt-1" role="progressbar" aria-valuenow={pct} aria-valuemin="0" aria-valuemax="100">
-                                                        <div className="progress-bar" style={{ width: `${pct}%` }} />
-                                                    </div>
-                                                </div>
-
-                                                <div className="mt-3 small text-muted">
-                                                    Tamaño: <span className="text-body">{g.size}</span> · Recompensa:{" "}
-                                                    <span className="text-body">{Number(g.points_reward || 0)} pts</span>
-                                                </div>
+                                                {t.description ? (
+                                                    <div className="pb-item__desc">{t.description}</div>
+                                                ) : null}
                                             </div>
 
-                                            <div className="d-flex flex-column gap-2" style={{ minWidth: 160 }}>
-                                                <button className="btn btn-outline-primary" disabled={busy || done} onClick={() => handleProgress(g.id, 1)}>
-                                                    +1 progreso
-                                                </button>
-                                                <button className="btn btn-success" disabled={busy || done} onClick={() => handleComplete(g.id)}>
-                                                    Completar
-                                                </button>
-                                                <button className="btn btn-outline-danger" disabled={busy} onClick={() => handleDelete(g.id)}>
-                                                    Eliminar
+                                            <div className="pb-item__actions">
+                                                <button
+                                                    className="pb-btn pb-btn--primary"
+                                                    disabled={loading}
+                                                    onClick={() => onAddFromTemplate(t)}
+                                                >
+                                                    Añadir
                                                 </button>
                                             </div>
                                         </div>
+                                    ))
+                                )}
+                            </div>
+                        </div>
+                    ) : (
+                        <div className="pb-card">
+                            <div className="pb-card__header">
+                                <h2 className="pb-card__title">Mis objetivos</h2>
+                                <div className="pb-chip">{activeGoals.length}</div>
+                            </div>
 
-                                        {done ? (
-                                            <div className="mt-3 small text-muted">
-                                                Completed at: <span className="text-body">{g.completed_at}</span>
-                                            </div>
-                                        ) : null}
+                            <div className="pb-list">
+                                {activeGoals.length === 0 ? (
+                                    <div className="pb-empty">
+                                        No tienes objetivos todavía. Ve a Plantillas o crea uno.
                                     </div>
+                                ) : (
+                                    activeGoals.map((g) => {
+                                        const percent = pct(g.current_value, g.target_value);
+                                        const done = !!g.completed_at;
+                                        return (
+                                            <div key={g.id} className={`pb-goal ${done ? "is-done" : ""}`}>
+                                                <div className="pb-goal__head">
+                                                    <div>
+                                                        <div className="pb-goal__title">
+                                                            {g.title} {done ? <span className="pb-badge">Completado</span> : null}
+                                                        </div>
+                                                        <div className="pb-goal__meta">
+                                                            <span className="pb-tag">{g.goal_type || "General"}</span>
+                                                            <span className="pb-tag">{freqLabel(g.frequency)}</span>
+                                                            <span className="pb-tag">{sizeLabel(g.size)}</span>
+                                                            <span className="pb-tag">{g.points_reward} pts</span>
+                                                        </div>
+                                                        {g.description ? (
+                                                            <div className="pb-goal__desc">{g.description}</div>
+                                                        ) : null}
+                                                    </div>
+
+                                                    <div className="pb-goal__right">
+                                                        <div className="pb-goal__progressline">
+                                                            <span>Progreso</span>
+                                                            <span>
+                                                                {g.current_value} / {g.target_value} ({percent}%)
+                                                            </span>
+                                                        </div>
+                                                        <div className="pb-bar">
+                                                            <div className="pb-bar__fill" style={{ width: `${percent}%` }} />
+                                                        </div>
+                                                    </div>
+                                                </div>
+
+                                                <div className="pb-goal__actions">
+                                                    <div className="pb-btngroup">
+                                                        <button
+                                                            className="pb-btn pb-btn--ghost"
+                                                            disabled={loading || done || g.current_value >= g.target_value}
+                                                            onClick={() => onProgress(g.id, 1)}
+                                                        >
+                                                            +1
+                                                        </button>
+                                                        <button
+                                                            className="pb-btn pb-btn--ghost"
+                                                            disabled={loading || done || g.current_value >= g.target_value}
+                                                            onClick={() => onProgress(g.id, 5)}
+                                                        >
+                                                            +5
+                                                        </button>
+                                                    </div>
+
+                                                    <div className="pb-btngroup">
+                                                        <button
+                                                            className="pb-btn pb-btn--success"
+                                                            disabled={loading || done}
+                                                            onClick={() => onComplete(g.id)}
+                                                        >
+                                                            Completar
+                                                        </button>
+                                                        <button
+                                                            className="pb-btn pb-btn--danger"
+                                                            disabled={loading}
+                                                            onClick={() => onDelete(g.id)}
+                                                        >
+                                                            Eliminar
+                                                        </button>
+                                                    </div>
+                                                </div>
+
+                                                {done ? (
+                                                    <div className="pb-goal__foot">
+                                                        Completed at: {g.completed_at}
+                                                    </div>
+                                                ) : null}
+                                            </div>
+                                        );
+                                    })
+                                )}
+                            </div>
+                        </div>
+                    )}
+                </div>
+
+                {/* RIGHT */}
+                <div className="pb-col">
+                    <div className="pb-card">
+                        <div className="pb-card__header">
+                            <h2 className="pb-card__title">Crear objetivo</h2>
+                            <div className="pb-chip">Custom</div>
+                        </div>
+
+                        <form onSubmit={onCreateCustom} className="pb-form">
+                            <div className="pb-field">
+                                <label>Título</label>
+                                <input
+                                    value={cTitle}
+                                    onChange={(e) => setCTitle(e.target.value)}
+                                    placeholder="Ej: Caminar"
+                                />
+                            </div>
+
+                            <div className="pb-field">
+                                <label>Descripción</label>
+                                <input
+                                    value={cDesc}
+                                    onChange={(e) => setCDesc(e.target.value)}
+                                    placeholder="Opcional"
+                                />
+                            </div>
+
+                            <div className="pb-form__row">
+                                <div className="pb-field">
+                                    <label>Categoría</label>
+                                    <select value={cCategory} onChange={(e) => setCCategory(e.target.value)}>
+                                        {getGoalTemplateCategories().map((c) => (
+                                            <option key={c} value={c}>
+                                                {c}
+                                            </option>
+                                        ))}
+                                    </select>
+                                </div>
+
+                                <div className="pb-field">
+                                    <label>Frecuencia</label>
+                                    <select value={cFreq} onChange={(e) => setCFreq(e.target.value)}>
+                                        {GOAL_FREQUENCIES.map((f) => (
+                                            <option key={f} value={f}>
+                                                {freqLabel(f)}
+                                            </option>
+                                        ))}
+                                    </select>
                                 </div>
                             </div>
-                        );
-                    })}
+
+                            <div className="pb-form__row">
+                                <div className="pb-field">
+                                    <label>Tamaño</label>
+                                    <select value={cSize} onChange={(e) => setCSize(e.target.value)}>
+                                        {GOAL_SIZES.map((s) => (
+                                            <option key={s} value={s}>
+                                                {sizeLabel(s)}
+                                            </option>
+                                        ))}
+                                    </select>
+                                </div>
+
+                                <div className="pb-field">
+                                    <label>Target</label>
+                                    <input
+                                        type="number"
+                                        value={cTarget}
+                                        onChange={(e) => setCTarget(e.target.value)}
+                                        min="0"
+                                    />
+                                </div>
+                            </div>
+
+                            <div className="pb-field">
+                                <label>Recompensa (pts)</label>
+                                <input
+                                    type="number"
+                                    value={cPoints}
+                                    onChange={(e) => setCPoints(e.target.value)}
+                                    min="0"
+                                />
+                                <div className="pb-hint">
+                                    Recomendación: small ≤ 10 pts. (Ahora mismo lo dejamos manual.)
+                                </div>
+                            </div>
+
+                            <button className="pb-btn pb-btn--primary" disabled={loading} type="submit">
+                                Crear
+                            </button>
+                        </form>
+                    </div>
+
+                    <div className="pb-card pb-card--muted">
+                        <div className="pb-card__header">
+                            <h3 className="pb-card__title">Notas</h3>
+                        </div>
+                        <ul className="pb-notes">
+                            <li>Puntos de Goals se muestran aquí (no se mezclan con Activities).</li>
+                            <li>La limitación por frecuencia (daily/weekly/monthly) la afinamos después (front + backend).</li>
+                            <li>Cuando haya categorías “reales” en DB, migramos desde goal_type sin perder datos.</li>
+                        </ul>
+                    </div>
                 </div>
-            )}
+            </div>
         </div>
     );
-};
+}

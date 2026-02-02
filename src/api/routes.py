@@ -1,4 +1,4 @@
-import os
+import os, json
 from collections import defaultdict
 from datetime import datetime, timedelta, timezone, date
 
@@ -19,6 +19,8 @@ from api.models import (
     ActivityCategory,
     ActivityType,
     Goal,
+    GoalCategory,
+    GoalTemplate, 
     GoalProgress,
     GoalSize,
     DailySessionGoal,
@@ -908,6 +910,7 @@ def create_emotion_checkin():
 # DEV: SEED + RESET
 # -------------------------
 
+# Bulk seed de actividades
 @api.route("/dev/seed/activities/bulk", methods=["POST"])
 def dev_seed_activities_bulk():
     if not dev_only():
@@ -979,6 +982,302 @@ def dev_seed_activities_bulk():
     db.session.commit()
 
     return jsonify({"msg": "Seed bulk completado", "created": created, "updated": updated, "skipped": skipped}), 200
+
+# Seed desde presets en JSON (sin terminal)
+@api.route("/dev/seed/activities/presets", methods=["POST"])
+def dev_seed_activities_presets():
+    if not dev_only():
+        return jsonify({"msg": "Not found"}), 404
+
+    # 1) Lee el JSON del front (fuente única)
+    base_dir = os.path.dirname(os.path.realpath(__file__))  # .../src/api
+    seed_path = os.path.join(base_dir, "..", "front", "data", "activities.seed.json")
+
+    try:
+        with open(seed_path, "r", encoding="utf-8") as f:
+            catalog = json.load(f)
+    except Exception as e:
+        return jsonify({"msg": f"No se pudo leer activities.seed.json: {e}"}), 500
+
+    day_items = catalog.get("day") or []
+    night_items = catalog.get("night") or []
+    if not isinstance(day_items, list) or not isinstance(night_items, list):
+        return jsonify({"msg": "Formato inválido: se espera {day:[], night:[]}" }), 400
+
+    items = []
+    items.extend(day_items)
+    items.extend(night_items)
+
+    if not items:
+        return jsonify({"msg": "activities.seed.json no contiene actividades"}), 400
+
+    # 2) Misma lógica que el bulk, pero usando `items` directamente
+    cat_cache = {}
+
+    def get_or_create_category(name: str):
+        name = (name or "General").strip()
+        if name in cat_cache:
+            return cat_cache[name]
+        cat = ActivityCategory.query.filter_by(name=name).first()
+        if not cat:
+            cat = ActivityCategory(name=name, description=None)
+            db.session.add(cat)
+            db.session.commit()
+        cat_cache[name] = cat
+        return cat
+
+    created = 0
+    updated = 0
+    skipped = 0
+
+    for a in items:
+        # NOTA: el JSON puede tener muchos campos extra (image, run, etc.)
+        # El seed solo consume id/branch/phase/title/description
+        ext = (a.get("id") or "").strip()
+        if not ext:
+            skipped += 1
+            continue
+
+        branch = (a.get("branch") or "General").strip()
+        category = get_or_create_category(branch)
+
+        phase = (a.get("phase") or "").strip().lower()
+        if phase == "day":
+            at_enum = ActivityType.day
+        elif phase == "night":
+            at_enum = ActivityType.night
+        else:
+            at_enum = ActivityType.both
+
+        name = (a.get("title") or ext).strip()
+        desc = (a.get("description") or "").strip() or None
+
+        activity = Activity.query.filter_by(external_id=ext).first()
+        if not activity:
+            activity = Activity(
+                external_id=ext,
+                category_id=category.id,
+                name=name,
+                description=desc,
+                activity_type=at_enum,
+                is_active=True
+            )
+            db.session.add(activity)
+            created += 1
+        else:
+            activity.category_id = category.id
+            activity.name = name
+            activity.description = desc
+            activity.activity_type = at_enum
+            activity.is_active = True
+            updated += 1
+
+    db.session.commit()
+
+    return jsonify({
+        "msg": "Seed presets completado",
+        "created": created,
+        "updated": updated,
+        "skipped": skipped
+    }), 200
+
+
+
+# Bulk seed de plantillas de objetivos
+@api.route("/dev/seed/goals/templates/bulk", methods=["POST"])
+@jwt_required()
+def dev_seed_goal_templates_bulk():
+    if not dev_only():
+        return jsonify({"msg": "Not found"}), 404
+
+    body = request.get_json(silent=True) or {}
+    items = body.get("templates") or []
+    if not isinstance(items, list) or not items:
+        return jsonify({"msg": "templates debe ser una lista no vacía"}), 400
+
+    cat_cache = {}
+
+    def get_or_create_goal_category(name: str):
+        name = (name or "General").strip()
+        if name in cat_cache:
+            return cat_cache[name]
+        cat = GoalCategory.query.filter_by(name=name).first()
+        if not cat:
+            cat = GoalCategory(name=name, description=None)
+            db.session.add(cat)
+            db.session.commit()
+        cat_cache[name] = cat
+        return cat
+
+    created = 0
+    updated = 0
+    skipped = 0
+
+    for t in items:
+        ext = (t.get("id") or "").strip()
+        if not ext:
+            skipped += 1
+            continue
+
+        category_name = (t.get("category") or "General").strip()
+        cat = get_or_create_goal_category(category_name)
+
+        size_raw = (t.get("size") or "small").strip().lower()
+        size_enum = _parse_goal_size(size_raw) or GoalSize.small
+
+        frequency = (t.get("frequency") or "daily").strip().lower()
+        if frequency not in ("daily", "weekly", "monthly"):
+            frequency = "daily"
+
+        try:
+            target_value = int(t.get("target_value") or 1)
+        except Exception:
+            target_value = 1
+        if target_value < 0:
+            target_value = 0
+
+        try:
+            points_reward = int(t.get("points_reward") or 0)
+        except Exception:
+            points_reward = 0
+        if points_reward < 0:
+            points_reward = 0
+
+        title = (t.get("title") or ext).strip()
+        desc = (t.get("description") or "").strip() or None
+
+        template = GoalTemplate.query.filter_by(external_id=ext).first()
+        if not template:
+            template = GoalTemplate(
+                external_id=ext,
+                category_id=cat.id,
+                title=title,
+                description=desc,
+                frequency=frequency,
+                size=size_enum,
+                target_value=target_value,
+                points_reward=points_reward,
+                is_active=True,
+            )
+            db.session.add(template)
+            created += 1
+        else:
+            template.category_id = cat.id
+            template.title = title
+            template.description = desc
+            template.frequency = frequency
+            template.size = size_enum
+            template.target_value = target_value
+            template.points_reward = points_reward
+            template.is_active = True
+            updated += 1
+
+    db.session.commit()
+    return jsonify({"msg": "Seed goal templates completado", "created": created, "updated": updated, "skipped": skipped}), 200
+
+
+@api.route("/dev/seed/goals/templates/presets", methods=["POST"])
+def dev_seed_goal_templates_presets():
+    if not dev_only():
+        return jsonify({"msg": "Not found"}), 404
+
+    base_dir = os.path.dirname(os.path.realpath(__file__))  # .../src/api
+    seed_path = os.path.join(base_dir, "..", "front", "data", "goalTemplates.seed.json")
+
+    try:
+        with open(seed_path, "r", encoding="utf-8") as f:
+            items = json.load(f)
+    except Exception as e:
+        return jsonify({"msg": f"No se pudo leer goalTemplates.seed.json: {e}"}), 500
+
+    if not isinstance(items, list) or not items:
+        return jsonify({"msg": "goalTemplates.seed.json debe ser una lista no vacía"}), 400
+
+    cat_cache = {}
+
+    def get_or_create_goal_category(name: str):
+        name = (name or "General").strip()
+        if name in cat_cache:
+            return cat_cache[name]
+        cat = GoalCategory.query.filter_by(name=name).first()
+        if not cat:
+            cat = GoalCategory(name=name, description=None)
+            db.session.add(cat)
+            db.session.commit()
+        cat_cache[name] = cat
+        return cat
+
+    created = 0
+    updated = 0
+    skipped = 0
+
+    for t in items:
+        ext = (t.get("id") or "").strip()
+        if not ext:
+            skipped += 1
+            continue
+
+        category_name = (t.get("category") or "General").strip()
+        cat = get_or_create_goal_category(category_name)
+
+        size_raw = (t.get("size") or "small").strip().lower()
+        size_enum = _parse_goal_size(size_raw) or GoalSize.small
+
+        frequency = (t.get("frequency") or "daily").strip().lower()
+        if frequency not in ("daily", "weekly", "monthly"):
+            frequency = "daily"
+
+        try:
+            target_value = int(t.get("target_value") or 1)
+        except Exception:
+            target_value = 1
+        if target_value < 0:
+            target_value = 0
+
+        try:
+            points_reward = int(t.get("points_reward") or 0)
+        except Exception:
+            points_reward = 0
+        if points_reward < 0:
+            points_reward = 0
+
+        title = (t.get("title") or ext).strip()
+        desc = (t.get("description") or "").strip() or None
+
+        template = GoalTemplate.query.filter_by(external_id=ext).first()
+        if not template:
+            template = GoalTemplate(
+                external_id=ext,
+                category_id=cat.id,
+                title=title,
+                description=desc,
+                frequency=frequency,
+                size=size_enum,
+                target_value=target_value,
+                points_reward=points_reward,
+                is_active=True,
+            )
+            db.session.add(template)
+            created += 1
+        else:
+            template.category_id = cat.id
+            template.title = title
+            template.description = desc
+            template.frequency = frequency
+            template.size = size_enum
+            template.target_value = target_value
+            template.points_reward = points_reward
+            template.is_active = True
+            updated += 1
+
+    db.session.commit()
+    return jsonify({
+        "msg": "Seed goal templates presets completado",
+        "created": created,
+        "updated": updated,
+        "skipped": skipped
+    }), 200
+
 
 
 @api.route("/dev/reset/today", methods=["POST"])

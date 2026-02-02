@@ -431,6 +431,73 @@ class Goal(db.Model):
         }
 
 
+class GoalCategory(db.Model):
+    __tablename__ = "goal_categories"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    name: Mapped[str] = mapped_column(
+        String(80), unique=True, nullable=False, index=True)
+    description: Mapped[str | None] = mapped_column(String(255), nullable=True)
+
+    def serialize(self):
+        return {"id": self.id, "name": self.name, "description": self.description}
+
+
+class GoalTemplate(db.Model):
+    __tablename__ = "goal_templates"
+    __table_args__ = (
+        Index("ix_goal_templates_category", "category_id"),
+        Index("ix_goal_templates_size", "size"),
+        Index("ix_goal_templates_frequency", "frequency"),
+    )
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+
+    # “id” estable del front (como external_id en activities)
+    external_id: Mapped[str] = mapped_column(
+        String(120), unique=True, nullable=False, index=True)
+
+    category_id: Mapped[int] = mapped_column(
+        Integer, ForeignKey("goal_categories.id"), nullable=False
+    )
+
+    title: Mapped[str] = mapped_column(String(120), nullable=False)
+    description: Mapped[str | None] = mapped_column(String(255), nullable=True)
+
+    # daily / weekly / monthly
+    frequency: Mapped[str] = mapped_column(
+        String(20), nullable=False, default="daily")
+
+    size: Mapped[GoalSize] = mapped_column(
+        SAEnum(GoalSize), nullable=False, default=GoalSize.small)
+
+    target_value: Mapped[int] = mapped_column(
+        Integer, nullable=False, default=1)
+    points_reward: Mapped[int] = mapped_column(
+        Integer, nullable=False, default=5)
+
+    is_active: Mapped[bool] = mapped_column(
+        Boolean, nullable=False, default=True)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime, nullable=False, default=datetime.utcnow)
+
+    category: Mapped["GoalCategory"] = relationship()
+
+    def serialize(self):
+        return {
+            "id": self.id,
+            "external_id": self.external_id,
+            "category_id": self.category_id,
+            "title": self.title,
+            "description": self.description,
+            "frequency": self.frequency,
+            "size": self.size.value,
+            "target_value": self.target_value,
+            "points_reward": self.points_reward,
+            "is_active": self.is_active,
+        }
+
+
 class DailySessionGoal(db.Model):
     __tablename__ = "daily_session_goals"
     __table_args__ = (
@@ -472,7 +539,6 @@ class DailySessionGoal(db.Model):
         }
 
 
-
 class GoalProgress(db.Model):
     __tablename__ = "goal_progress"
     __table_args__ = (
@@ -492,7 +558,8 @@ class GoalProgress(db.Model):
 
     delta_value: Mapped[int] = mapped_column(Integer, nullable=False)
     note: Mapped[str | None] = mapped_column(String(300), nullable=True)
-    created_at: Mapped[datetime] = mapped_column(DateTime, nullable=False, default=datetime.utcnow)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime, nullable=False, default=datetime.utcnow)
 
     goal: Mapped["Goal"] = relationship(back_populates="progress_entries")
 

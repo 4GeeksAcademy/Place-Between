@@ -12,7 +12,7 @@ import { ResetPassword } from "./pages/ResetPassword";
 
 import { Today } from "./pages/Today";
 import { Activities } from "./pages/Activities";
-import { Goals } from "./pages/Goals";
+import  Goals from "./pages/Goals";
 import { Mirror } from "./pages/Mirror";
 import { Profile } from "./pages/Profile";
 
