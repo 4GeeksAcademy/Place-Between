@@ -693,10 +693,6 @@ export default function Goals() {
                                 <li>Usa “custom” para objetivos personales (máx. 10–15 XP recomendado).</li>
                             </ol>
 
-                            <div className="pb-goals-muted">
-                                Nota: si ves “Sesión inválida”, es token caducado o mal guardado. Asegúrate de tener{" "}
-                                <span className="pb-goals-mono">pb_token</span> en localStorage.
-                            </div>
                         </div>
                     )}
                 </div>
