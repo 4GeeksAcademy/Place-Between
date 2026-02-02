@@ -2,7 +2,7 @@ from flask_sqlalchemy import SQLAlchemy
 from sqlalchemy import String, Boolean, Integer, Time, DateTime, Date, ForeignKey, UniqueConstraint, Index, CheckConstraint
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 import enum
-from datetime import datetime, time
+from datetime import datetime, time, date
 from sqlalchemy import Enum as SAEnum
 from werkzeug.security import generate_password_hash, check_password_hash
 
@@ -77,6 +77,8 @@ class User(db.Model):
 
     welcome_email_sent_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
 
+    emails_enabled: Mapped[bool] = mapped_column(Boolean, nullable=False, default=True)
+
     # Relationships
     sessions: Mapped[list["DailySession"]] = relationship(
         back_populates="user", cascade="all, delete-orphan"
@@ -100,6 +102,7 @@ class User(db.Model):
             "created_at": self.created_at.isoformat() + "Z",
             "last_login_at": self.last_login_at.isoformat() + "Z" if self.last_login_at else None,
             "last_activity_at": self.last_activity_at.isoformat() + "Z" if self.last_activity_at else None,
+            "emails_enabled": self.emails_enabled,
         }
     
     def set_password(self, password: str):
@@ -328,6 +331,7 @@ class Goal(db.Model):
         Index("ix_goals_user", "user_id"),
         CheckConstraint("target_value >= 0", name="ck_goal_target_nonneg"),
         CheckConstraint("current_value >= 0", name="ck_goal_current_nonneg"),
+        CheckConstraint("points_reward >= 0", name="ck_goal_points_nonneg"),
     )
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True)
@@ -339,10 +343,20 @@ class Goal(db.Model):
     title: Mapped[str] = mapped_column(String(120), nullable=False)
     description: Mapped[str | None] = mapped_column(String(255), nullable=True)
 
-    size: Mapped[GoalSize] = mapped_column(SAEnum(GoalSize), nullable=False)
+    # Compat con routes/front
+    goal_type: Mapped[str] = mapped_column(String(40), nullable=False, default="custom")
+    frequency: Mapped[str] = mapped_column(String(20), nullable=False, default="flexible")
+    start_date: Mapped[date | None] = mapped_column(Date, nullable=True)
+    end_date: Mapped[date | None] = mapped_column(Date, nullable=True)
+
+    size: Mapped[GoalSize] = mapped_column(
+        SAEnum(GoalSize), nullable=False, default=GoalSize.medium
+    )
 
     target_value: Mapped[int] = mapped_column(Integer, nullable=False)
     current_value: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
+
+    points_reward: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
 
     is_active: Mapped[bool] = mapped_column(Boolean, nullable=False, default=True)
     completed_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
@@ -363,12 +377,85 @@ class Goal(db.Model):
             "user_id": self.user_id,
             "title": self.title,
             "description": self.description,
+            "goal_type": self.goal_type,
+            "frequency": self.frequency,
+            "start_date": self.start_date.isoformat() if self.start_date else None,
+            "end_date": self.end_date.isoformat() if self.end_date else None,
             "size": self.size.value,
             "target_value": self.target_value,
             "current_value": self.current_value,
+            "points_reward": int(self.points_reward or 0),
             "is_active": self.is_active,
             "completed_at": self.completed_at.isoformat() + "Z" if self.completed_at else None,
             "created_at": self.created_at.isoformat() + "Z",
+        }
+    
+    
+class GoalCategory(db.Model):
+    __tablename__ = "goal_categories"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    name: Mapped[str] = mapped_column(
+        String(80), unique=True, nullable=False, index=True)
+    description: Mapped[str | None] = mapped_column(String(255), nullable=True)
+
+    def serialize(self):
+        return {"id": self.id, "name": self.name, "description": self.description}
+    
+
+    
+class GoalTemplate(db.Model):
+    __tablename__ = "goal_templates"
+    __table_args__ = (
+        Index("ix_goal_templates_category", "category_id"),
+        Index("ix_goal_templates_size", "size"),
+        Index("ix_goal_templates_frequency", "frequency"),
+    )
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+
+    # “id” estable del front (como external_id en activities)
+    external_id: Mapped[str] = mapped_column(
+        String(120), unique=True, nullable=False, index=True)
+
+    category_id: Mapped[int] = mapped_column(
+        Integer, ForeignKey("goal_categories.id"), nullable=False
+    )
+
+    title: Mapped[str] = mapped_column(String(120), nullable=False)
+    description: Mapped[str | None] = mapped_column(String(255), nullable=True)
+
+    # daily / weekly / monthly
+    frequency: Mapped[str] = mapped_column(
+        String(20), nullable=False, default="daily")
+
+    size: Mapped[GoalSize] = mapped_column(
+        SAEnum(GoalSize), nullable=False, default=GoalSize.small)
+
+    target_value: Mapped[int] = mapped_column(
+        Integer, nullable=False, default=1)
+    points_reward: Mapped[int] = mapped_column(
+        Integer, nullable=False, default=5)
+
+    is_active: Mapped[bool] = mapped_column(
+        Boolean, nullable=False, default=True)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime, nullable=False, default=datetime.utcnow)
+
+    category: Mapped["GoalCategory"] = relationship()
+
+    def serialize(self):
+        return {
+            "id": self.id,
+            "external_id": self.external_id,
+            "category_id": self.category_id,
+            "title": self.title,
+            "description": self.description,
+            "frequency": self.frequency,
+            "size": self.size.value,
+            "target_value": self.target_value,
+            "points_reward": self.points_reward,
+            "is_active": self.is_active,
         }
 
 
