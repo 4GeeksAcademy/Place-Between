@@ -1,4 +1,4 @@
-import os
+import os, json
 from collections import defaultdict
 from datetime import datetime, timedelta, timezone, date
 
@@ -18,6 +18,12 @@ from api.models import (
     SessionType,
     ActivityCategory,
     ActivityType,
+    Goal,
+    GoalCategory,
+    GoalTemplate, 
+    GoalProgress,
+    GoalSize,
+    DailySessionGoal,
     Reminder,
     ReminderType,
     ReminderMode
@@ -345,7 +351,8 @@ def build_mirror_range_payload(user_id: int, start_date, end_date):
         dist_emotions_out[name] = {"count": obj["count"], "intensity_avg": avg}
 
     for da in days_map.values():
-        da["emotion_entries"].sort(key=lambda x: (x.get("created_at") or ""), reverse=True)
+        da["emotion_entries"].sort(key=lambda x: (
+            x.get("created_at") or ""), reverse=True)
 
     # 6) totales + streak
     days_list = list(days_map.values())
@@ -364,7 +371,8 @@ def build_mirror_range_payload(user_id: int, start_date, end_date):
             return True
 
     consistency_flags_all = [d["principal_count"] > 0 for d in days_list]
-    consistency_flags_upto_today = [d["principal_count"] > 0 for d in days_list if _day_leq_cutoff(d)]
+    consistency_flags_upto_today = [
+        d["principal_count"] > 0 for d in days_list if _day_leq_cutoff(d)]
 
     # Best streak puede calcularse con todo el rango (da igual que haya futuros a False, no reduce el máximo),
     # pero current streak debe excluir días futuros.
@@ -991,6 +999,7 @@ def create_emotion_checkin():
 # DEV: SEED + RESET
 # -------------------------
 
+# Bulk seed de actividades
 @api.route("/dev/seed/activities/bulk", methods=["POST"])
 def dev_seed_activities_bulk():
     if not dev_only():
@@ -1062,6 +1071,302 @@ def dev_seed_activities_bulk():
     db.session.commit()
 
     return jsonify({"msg": "Seed bulk completado", "created": created, "updated": updated, "skipped": skipped}), 200
+
+# Seed desde presets en JSON (sin terminal)
+@api.route("/dev/seed/activities/presets", methods=["POST"])
+def dev_seed_activities_presets():
+    if not dev_only():
+        return jsonify({"msg": "Not found"}), 404
+
+    # 1) Lee el JSON del front (fuente única)
+    base_dir = os.path.dirname(os.path.realpath(__file__))  # .../src/api
+    seed_path = os.path.join(base_dir, "..", "front", "data", "activities.seed.json")
+
+    try:
+        with open(seed_path, "r", encoding="utf-8") as f:
+            catalog = json.load(f)
+    except Exception as e:
+        return jsonify({"msg": f"No se pudo leer activities.seed.json: {e}"}), 500
+
+    day_items = catalog.get("day") or []
+    night_items = catalog.get("night") or []
+    if not isinstance(day_items, list) or not isinstance(night_items, list):
+        return jsonify({"msg": "Formato inválido: se espera {day:[], night:[]}" }), 400
+
+    items = []
+    items.extend(day_items)
+    items.extend(night_items)
+
+    if not items:
+        return jsonify({"msg": "activities.seed.json no contiene actividades"}), 400
+
+    # 2) Misma lógica que el bulk, pero usando `items` directamente
+    cat_cache = {}
+
+    def get_or_create_category(name: str):
+        name = (name or "General").strip()
+        if name in cat_cache:
+            return cat_cache[name]
+        cat = ActivityCategory.query.filter_by(name=name).first()
+        if not cat:
+            cat = ActivityCategory(name=name, description=None)
+            db.session.add(cat)
+            db.session.commit()
+        cat_cache[name] = cat
+        return cat
+
+    created = 0
+    updated = 0
+    skipped = 0
+
+    for a in items:
+        # NOTA: el JSON puede tener muchos campos extra (image, run, etc.)
+        # El seed solo consume id/branch/phase/title/description
+        ext = (a.get("id") or "").strip()
+        if not ext:
+            skipped += 1
+            continue
+
+        branch = (a.get("branch") or "General").strip()
+        category = get_or_create_category(branch)
+
+        phase = (a.get("phase") or "").strip().lower()
+        if phase == "day":
+            at_enum = ActivityType.day
+        elif phase == "night":
+            at_enum = ActivityType.night
+        else:
+            at_enum = ActivityType.both
+
+        name = (a.get("title") or ext).strip()
+        desc = (a.get("description") or "").strip() or None
+
+        activity = Activity.query.filter_by(external_id=ext).first()
+        if not activity:
+            activity = Activity(
+                external_id=ext,
+                category_id=category.id,
+                name=name,
+                description=desc,
+                activity_type=at_enum,
+                is_active=True
+            )
+            db.session.add(activity)
+            created += 1
+        else:
+            activity.category_id = category.id
+            activity.name = name
+            activity.description = desc
+            activity.activity_type = at_enum
+            activity.is_active = True
+            updated += 1
+
+    db.session.commit()
+
+    return jsonify({
+        "msg": "Seed presets completado",
+        "created": created,
+        "updated": updated,
+        "skipped": skipped
+    }), 200
+
+
+
+# Bulk seed de plantillas de objetivos
+@api.route("/dev/seed/goals/templates/bulk", methods=["POST"])
+@jwt_required()
+def dev_seed_goal_templates_bulk():
+    if not dev_only():
+        return jsonify({"msg": "Not found"}), 404
+
+    body = request.get_json(silent=True) or {}
+    items = body.get("templates") or []
+    if not isinstance(items, list) or not items:
+        return jsonify({"msg": "templates debe ser una lista no vacía"}), 400
+
+    cat_cache = {}
+
+    def get_or_create_goal_category(name: str):
+        name = (name or "General").strip()
+        if name in cat_cache:
+            return cat_cache[name]
+        cat = GoalCategory.query.filter_by(name=name).first()
+        if not cat:
+            cat = GoalCategory(name=name, description=None)
+            db.session.add(cat)
+            db.session.commit()
+        cat_cache[name] = cat
+        return cat
+
+    created = 0
+    updated = 0
+    skipped = 0
+
+    for t in items:
+        ext = (t.get("id") or "").strip()
+        if not ext:
+            skipped += 1
+            continue
+
+        category_name = (t.get("category") or "General").strip()
+        cat = get_or_create_goal_category(category_name)
+
+        size_raw = (t.get("size") or "small").strip().lower()
+        size_enum = _parse_goal_size(size_raw) or GoalSize.small
+
+        frequency = (t.get("frequency") or "daily").strip().lower()
+        if frequency not in ("daily", "weekly", "monthly"):
+            frequency = "daily"
+
+        try:
+            target_value = int(t.get("target_value") or 1)
+        except Exception:
+            target_value = 1
+        if target_value < 0:
+            target_value = 0
+
+        try:
+            points_reward = int(t.get("points_reward") or 0)
+        except Exception:
+            points_reward = 0
+        if points_reward < 0:
+            points_reward = 0
+
+        title = (t.get("title") or ext).strip()
+        desc = (t.get("description") or "").strip() or None
+
+        template = GoalTemplate.query.filter_by(external_id=ext).first()
+        if not template:
+            template = GoalTemplate(
+                external_id=ext,
+                category_id=cat.id,
+                title=title,
+                description=desc,
+                frequency=frequency,
+                size=size_enum,
+                target_value=target_value,
+                points_reward=points_reward,
+                is_active=True,
+            )
+            db.session.add(template)
+            created += 1
+        else:
+            template.category_id = cat.id
+            template.title = title
+            template.description = desc
+            template.frequency = frequency
+            template.size = size_enum
+            template.target_value = target_value
+            template.points_reward = points_reward
+            template.is_active = True
+            updated += 1
+
+    db.session.commit()
+    return jsonify({"msg": "Seed goal templates completado", "created": created, "updated": updated, "skipped": skipped}), 200
+
+
+@api.route("/dev/seed/goals/templates/presets", methods=["POST"])
+def dev_seed_goal_templates_presets():
+    if not dev_only():
+        return jsonify({"msg": "Not found"}), 404
+
+    base_dir = os.path.dirname(os.path.realpath(__file__))  # .../src/api
+    seed_path = os.path.join(base_dir, "..", "front", "data", "goalTemplates.seed.json")
+
+    try:
+        with open(seed_path, "r", encoding="utf-8") as f:
+            items = json.load(f)
+    except Exception as e:
+        return jsonify({"msg": f"No se pudo leer goalTemplates.seed.json: {e}"}), 500
+
+    if not isinstance(items, list) or not items:
+        return jsonify({"msg": "goalTemplates.seed.json debe ser una lista no vacía"}), 400
+
+    cat_cache = {}
+
+    def get_or_create_goal_category(name: str):
+        name = (name or "General").strip()
+        if name in cat_cache:
+            return cat_cache[name]
+        cat = GoalCategory.query.filter_by(name=name).first()
+        if not cat:
+            cat = GoalCategory(name=name, description=None)
+            db.session.add(cat)
+            db.session.commit()
+        cat_cache[name] = cat
+        return cat
+
+    created = 0
+    updated = 0
+    skipped = 0
+
+    for t in items:
+        ext = (t.get("id") or "").strip()
+        if not ext:
+            skipped += 1
+            continue
+
+        category_name = (t.get("category") or "General").strip()
+        cat = get_or_create_goal_category(category_name)
+
+        size_raw = (t.get("size") or "small").strip().lower()
+        size_enum = _parse_goal_size(size_raw) or GoalSize.small
+
+        frequency = (t.get("frequency") or "daily").strip().lower()
+        if frequency not in ("daily", "weekly", "monthly"):
+            frequency = "daily"
+
+        try:
+            target_value = int(t.get("target_value") or 1)
+        except Exception:
+            target_value = 1
+        if target_value < 0:
+            target_value = 0
+
+        try:
+            points_reward = int(t.get("points_reward") or 0)
+        except Exception:
+            points_reward = 0
+        if points_reward < 0:
+            points_reward = 0
+
+        title = (t.get("title") or ext).strip()
+        desc = (t.get("description") or "").strip() or None
+
+        template = GoalTemplate.query.filter_by(external_id=ext).first()
+        if not template:
+            template = GoalTemplate(
+                external_id=ext,
+                category_id=cat.id,
+                title=title,
+                description=desc,
+                frequency=frequency,
+                size=size_enum,
+                target_value=target_value,
+                points_reward=points_reward,
+                is_active=True,
+            )
+            db.session.add(template)
+            created += 1
+        else:
+            template.category_id = cat.id
+            template.title = title
+            template.description = desc
+            template.frequency = frequency
+            template.size = size_enum
+            template.target_value = target_value
+            template.points_reward = points_reward
+            template.is_active = True
+            updated += 1
+
+    db.session.commit()
+    return jsonify({
+        "msg": "Seed goal templates presets completado",
+        "created": created,
+        "updated": updated,
+        "skipped": skipped
+    }), 200
+
 
 
 @api.route("/dev/reset/today", methods=["POST"])
@@ -1366,21 +1671,292 @@ def task_send_reminders():
         "force": force
     }), 200
 
+
 # -------------------------
-# TEMPORARILY DISABLED ROUTES
-# (They are currently inconsistent / broken: params, jwt, GET body usage)
-# Re-enable later with a clean contract.
+# GOALS
 # -------------------------
 
-# @api.route("/users", methods=["GET"])
-# def get_all_users():
-#     users = User.query.all()
-#     return jsonify([u.serialize() for u in users])
 
-# @api.route("/users/<int:user_id>", methods=["DELETE"])
-# @jwt_required()
-# def delete_user(user_id):
-#     # TODO: decide policy. For now, delete only self, or require admin.
-#     pass
+def _parse_goal_size(raw: str):
+    raw = (raw or "").strip().lower()
+    if raw in ("small", "medium", "large"):
+        return GoalSize(raw)
+    return None
 
-# ... other session/emotion/activity completion routes TODO ...
+
+def _get_or_create_day_session(user_id: int, session_date: date):
+    st_enum = SessionType.day
+    session = DailySession.query.filter_by(
+        user_id=user_id,
+        session_date=session_date,
+        session_type=st_enum
+    ).first()
+    if not session:
+        session = DailySession(
+            user_id=user_id,
+            session_date=session_date,
+            session_type=st_enum,
+            points_earned=0
+        )
+        db.session.add(session)
+        db.session.commit()
+    return session
+
+
+@api.route("/goals", methods=["GET"])
+@jwt_required()
+def list_goals():
+    user_id = int(get_jwt_identity())
+    goals = Goal.query.filter_by(user_id=user_id).order_by(Goal.created_at.desc()).all()
+    return jsonify([g.serialize() for g in goals]), 200
+
+
+@api.route("/goals", methods=["POST"])
+@jwt_required()
+def create_goal():
+    user_id = int(get_jwt_identity())
+    data = request.get_json(silent=True) or {}
+
+    title = (data.get("title") or "").strip()
+    if not title:
+        return jsonify({"msg": "title is required"}), 400
+
+    size_enum = _parse_goal_size(data.get("size"))
+    if not size_enum:
+        return jsonify({"msg": "size must be one of: small, medium, large"}), 400
+
+    try:
+        target_value = int(data.get("target_value"))
+    except Exception:
+        return jsonify({"msg": "target_value is required and must be an integer"}), 400
+    if target_value < 0:
+        return jsonify({"msg": "target_value must be >= 0"}), 400
+
+    try:
+        current_value = int(data.get("current_value") or 0)
+    except Exception:
+        return jsonify({"msg": "current_value must be an integer"}), 400
+    if current_value < 0:
+        return jsonify({"msg": "current_value must be >= 0"}), 400
+
+    try:
+        points_reward = int(data.get("points_reward") or 0)
+    except Exception:
+        return jsonify({"msg": "points_reward must be an integer"}), 400
+    if points_reward < 0:
+        return jsonify({"msg": "points_reward must be >= 0"}), 400
+
+    goal = Goal(
+        user_id=user_id,
+        title=title,
+        description=(data.get("description") or "").strip() or None,
+
+        goal_type=(data.get("goal_type") or "custom").strip(),
+        frequency=(data.get("frequency") or "flexible").strip(),
+        start_date=_parse_date_ymd(data.get("start_date")),
+        end_date=_parse_date_ymd(data.get("end_date")),
+
+        size=size_enum,
+        target_value=target_value,
+        current_value=current_value,
+        points_reward=points_reward,
+
+        is_active=bool(data.get("is_active", True)),
+    )
+
+    db.session.add(goal)
+    db.session.commit()
+    return jsonify(goal.serialize()), 201
+
+
+def _get_user_goal_or_404(user_id: int, goal_id: int):
+    goal = Goal.query.get(goal_id)
+    if goal is None or goal.user_id != user_id:
+        return None
+    return goal
+
+
+@api.route("/goals/<int:goal_id>", methods=["GET"])
+@jwt_required()
+def get_goal(goal_id):
+    user_id = int(get_jwt_identity())
+    goal = _get_user_goal_or_404(user_id, goal_id)
+    if goal is None:
+        return jsonify({"msg": "goal not found"}), 404
+    return jsonify(goal.serialize()), 200
+
+
+@api.route("/goals/<int:goal_id>", methods=["PUT"])
+@jwt_required()
+def update_goal(goal_id):
+    user_id = int(get_jwt_identity())
+    goal = _get_user_goal_or_404(user_id, goal_id)
+    if goal is None:
+        return jsonify({"msg": "goal not found"}), 404
+
+    data = request.get_json(silent=True) or {}
+
+    if "title" in data:
+        new_title = (data.get("title") or "").strip()
+        if not new_title:
+            return jsonify({"msg": "El título no puede estar vacío"}), 400
+        goal.title = new_title
+
+    if "description" in data:
+        goal.description = (data.get("description") or "").strip() or None
+
+    if "goal_type" in data:
+        goal.goal_type = (data.get("goal_type") or goal.goal_type).strip()
+
+    if "frequency" in data:
+        goal.frequency = (data.get("frequency") or goal.frequency).strip()
+
+    if "start_date" in data:
+        goal.start_date = _parse_date_ymd(data.get("start_date"))
+
+    if "end_date" in data:
+        goal.end_date = _parse_date_ymd(data.get("end_date"))
+
+    if "size" in data:
+        size_enum = _parse_goal_size(data.get("size"))
+        if not size_enum:
+            return jsonify({"msg": "size must be one of: small, medium, large"}), 400
+        goal.size = size_enum
+
+    if "target_value" in data:
+        try:
+            tv = int(data.get("target_value"))
+        except Exception:
+            return jsonify({"msg": "target_value must be an integer"}), 400
+        if tv < 0:
+            return jsonify({"msg": "target_value must be >= 0"}), 400
+        goal.target_value = tv
+
+    if "current_value" in data:
+        try:
+            cv = int(data.get("current_value"))
+        except Exception:
+            return jsonify({"msg": "current_value must be an integer"}), 400
+        if cv < 0:
+            return jsonify({"msg": "current_value must be >= 0"}), 400
+        goal.current_value = cv
+
+    if "points_reward" in data:
+        try:
+            pr = int(data.get("points_reward") or 0)
+        except Exception:
+            return jsonify({"msg": "points_reward must be an integer"}), 400
+        if pr < 0:
+            return jsonify({"msg": "points_reward must be >= 0"}), 400
+        goal.points_reward = pr
+
+    if "is_active" in data:
+        goal.is_active = bool(data.get("is_active"))
+
+    db.session.commit()
+    return jsonify(goal.serialize()), 200
+
+
+@api.route("/goals/<int:goal_id>", methods=["DELETE"])
+@jwt_required()
+def delete_goal(goal_id):
+    user_id = int(get_jwt_identity())
+    goal = _get_user_goal_or_404(user_id, goal_id)
+    if goal is None:
+        return jsonify({"msg": "goal not found"}), 404
+
+    db.session.delete(goal)
+    db.session.commit()
+    return jsonify({"msg": "deleted"}), 200
+
+
+@api.route("/goals/<int:goal_id>/progress", methods=["POST"])
+@jwt_required()
+def add_goal_progress(goal_id):
+    """Adds a progress entry for a goal (optionally tied to a DailySession)."""
+    user_id = int(get_jwt_identity())
+    goal = _get_user_goal_or_404(user_id, goal_id)
+    if goal is None:
+        return jsonify({"msg": "goal not found"}), 404
+
+    data = request.get_json(silent=True) or {}
+    daily_session_id = data.get("daily_session_id")
+    note = (data.get("note") or "").strip()
+
+    try:
+        delta_value = int(data.get("delta_value"))
+    except Exception:
+        return jsonify({"msg": "delta_value is required and must be an integer"}), 400
+
+    daily_session = None
+    if daily_session_id is not None:
+        daily_session = DailySession.query.get(daily_session_id)
+        if daily_session is None or daily_session.user_id != user_id:
+            return jsonify({"msg": "daily_session not found"}), 404
+
+    progress = GoalProgress(
+        goal_id=goal.id,
+        daily_session_id=daily_session.id if daily_session else None,
+        delta_value=delta_value,
+        note=note if note else None,
+    )
+    db.session.add(progress)
+
+    # Sync current_value (acumulativo) si es numérico
+    goal.current_value = int(goal.current_value or 0) + int(delta_value or 0)
+
+    db.session.commit()
+    return jsonify(progress.serialize()), 201
+
+
+@api.route("/goals/<int:goal_id>/complete", methods=["POST"])
+@jwt_required()
+def complete_goal(goal_id):
+    """
+    Marks a goal as completed and awards points into a DailySession.
+    daily_session_id es opcional:
+      - si viene: usa esa sesión (del usuario)
+      - si no viene: crea/usa sesión DAY de hoy (UTC date)
+    """
+    user_id = int(get_jwt_identity())
+    goal = _get_user_goal_or_404(user_id, goal_id)
+    if goal is None:
+        return jsonify({"msg": "goal not found"}), 404
+
+    data = request.get_json(silent=True) or {}
+    daily_session_id = data.get("daily_session_id")
+
+    today = datetime.now(timezone.utc).date()
+
+    if daily_session_id is not None:
+        daily_session = DailySession.query.get(daily_session_id)
+        if daily_session is None or daily_session.user_id != user_id:
+            return jsonify({"msg": "daily_session not found"}), 404
+    else:
+        daily_session = _get_or_create_day_session(user_id=user_id, session_date=today)
+
+    # Conecta goal con sesión si no está ya
+    link = DailySessionGoal.query.filter_by(
+        daily_session_id=daily_session.id,
+        goal_id=goal.id
+    ).first()
+    if link is None:
+        link = DailySessionGoal(daily_session_id=daily_session.id, goal_id=goal.id)
+        db.session.add(link)
+
+    did_award = False
+    reward = int(goal.points_reward or 0)
+
+    # Evitar doble recompensa: si ya tiene completed_at, no se vuelve a sumar
+    if goal.completed_at is None:
+        goal.completed_at = datetime.now(timezone.utc)
+        daily_session.points_earned = int(daily_session.points_earned or 0) + reward
+        did_award = True
+
+    db.session.commit()
+
+    return jsonify({
+        "goal": goal.serialize(),
+        "daily_session": daily_session.serialize(),
+        "awarded_points": reward if did_award else 0
+    }), 200

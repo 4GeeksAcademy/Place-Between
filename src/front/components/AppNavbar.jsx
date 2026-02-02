@@ -1,7 +1,6 @@
 import { Link, NavLink, useNavigate } from "react-router-dom";
 import { logout } from "../services/authService";
 
-
 const LogoMark = ({ size = 22 }) => (
 	<svg width={size} height={size} viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
 		<path d="M32 6L58 22L32 58L6 22L32 6Z" fill="currentColor" opacity="0.18" />
@@ -41,6 +40,9 @@ export const AppNavbar = () => {
 						</li>
 						<li className="nav-item">
 							<NavLink to="/activities" className={({ isActive }) => `nav-link ${isActive ? "fw-semibold text-primary" : ""}`}>Actividades</NavLink>
+						</li>
+						<li className="nav-item">
+							<NavLink to="/goals" className={({ isActive }) => `nav-link ${isActive ? "fw-semibold text-primary" : ""}`}>Objetivos</NavLink>
 						</li>
 						<li className="nav-item">
 							<NavLink to="/mirror" className={({ isActive }) => `nav-link ${isActive ? "fw-semibold text-primary" : ""}`}>Espejo</NavLink>

@@ -8,8 +8,8 @@ export const ActivityCard = ({
     completed = false,
     variant = "compact", // "hero" | "compact"
     onStart,
-    onComplete, // (de momento no se usa aquí; lo dejamos por compat)
-    showCompleteButton = true, // (de momento no se usa; lo dejamos por compat)
+    onComplete, // compat
+    showCompleteButton = true, // compat
 }) => {
     const hasRun = Boolean(activity?.run);
     const duration = Number(activity?.duration);
@@ -19,7 +19,10 @@ export const ActivityCard = ({
     const imageSrc = activity?.image || FALLBACK_IMG;
 
     return (
-        <div className={`pb-activity card shadow-sm ${variant === "hero" ? "pb-activity-hero" : ""}`}>
+        <div
+            className={`pb-activity card shadow-sm h-100 ${variant === "hero" ? "pb-activity-hero" : ""
+                }`}
+        >
             {/* Imagen siempre visible para consistencia de layout */}
             <div className="pb-activity-imgWrap">
                 <img
@@ -35,36 +38,62 @@ export const ActivityCard = ({
                 />
             </div>
 
-            <div className={`card-body ${variant === "hero" ? "p-4 p-lg-5" : "p-4"}`}>
-                <div className="d-flex justify-content-between align-items-start gap-3">
-                    <div>
-                        <div className="pb-meta">
-                            <span className={`badge ${activity?.branchBadge || "text-bg-light border"}`}>
-                                {activity?.branch || "General"}
-                            </span>
+            {/* Body en flex-col para igualar alturas y anclar acciones abajo */}
+            <div
+                className={`card-body d-flex flex-column ${variant === "hero" ? "p-4 p-lg-5" : "p-4"
+                    }`}
+            >
+                {/* MAIN: ocupa el espacio variable */}
+                <div className="pb-activity-main flex-grow-1">
+                    <div className="d-flex justify-content-between align-items-start gap-3">
+                        <div>
+                            <div className="pb-meta">
+                                <span className={`badge ${activity?.branchBadge || "text-bg-light border"}`}>
+                                    {activity?.branch || "General"}
+                                </span>
 
-                            <span className="pb-dot" />
-                            <span className="text-secondary small">{durationLabel}</span>
+                                <span className="pb-dot" />
+                                <span className="text-secondary small">{durationLabel}</span>
 
-                            {completed && (
-                                <>
-                                    <span className="pb-dot" />
-                                    <span className="badge text-bg-success">Completada</span>
-                                </>
-                            )}
+                                {completed && (
+                                    <>
+                                        <span className="pb-dot" />
+                                        <span className="badge text-bg-success">Completada</span>
+                                    </>
+                                )}
+                            </div>
+
+                            <h3 className={`${variant === "hero" ? "h3" : "h5"} fw-bold mt-2 mb-2`}>
+                                {activity?.title || "Actividad"}
+                            </h3>
+
+                            {/* Clamp para que no rompa alturas */}
+                            <p className="pb-activity-desc text-secondary mb-0">
+                                {activity?.description || "Sin descripción."}
+                            </p>
                         </div>
 
-                        <h3 className={`${variant === "hero" ? "h3" : "h5"} fw-bold mt-2 mb-2`}>
-                            {activity?.title || "Actividad"}
-                        </h3>
-
-                        <p className="text-secondary mb-0">{activity?.description || "Sin descripción."}</p>
+                        {activity?.priority && variant === "hero" && (
+                            <span className="badge text-bg-warning">Prioridad</span>
+                        )}
                     </div>
 
-                    {activity?.priority && variant === "hero" && <span className="badge text-bg-warning">Prioridad</span>}
+                    {/* Mensajes (también con clamp) */}
+                    {!hasRun && (
+                        <div className="pb-activity-note mt-3 small text-secondary">
+                            <span className="fw-semibold">Pendiente:</span> esta actividad aún no tiene runner asignado.
+                        </div>
+                    )}
+
+                    {activity?.reason && (
+                        <div className="pb-activity-reason mt-3 small text-secondary">
+                            <span className="fw-semibold">Sugerencia:</span> {activity.reason}
+                        </div>
+                    )}
                 </div>
 
-                <div className="d-flex flex-wrap gap-2 mt-3">
+                {/* ACTIONS: siempre abajo */}
+                <div className="d-flex flex-wrap gap-2 mt-3 mt-auto pt-2">
                     <button
                         className="btn btn-primary"
                         onClick={() => onStart?.(activity)}
@@ -74,21 +103,8 @@ export const ActivityCard = ({
                         Empezar
                     </button>
 
-                    {/* Aquí podríamos añadir un botón “Ver detalles” en el futuro */}
+                    {/* Futuro: “Ver detalles”, etc. */}
                 </div>
-
-                {/* Mensaje claro cuando viene de BD sin enrich */}
-                {!hasRun && (
-                    <div className="mt-3 small text-secondary">
-                        <span className="fw-semibold">Pendiente:</span> esta actividad aún no tiene runner asignado.
-                    </div>
-                )}
-
-                {activity?.reason && (
-                    <div className="mt-3 small text-secondary">
-                        <span className="fw-semibold">Sugerencia:</span> {activity.reason}
-                    </div>
-                )}
             </div>
         </div>
     );

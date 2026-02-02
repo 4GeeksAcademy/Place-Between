@@ -1,8 +1,3 @@
-// scripts/seedActivities.mjs
-// Seed del catálogo frontend en la DB vía endpoint bulk.
-// Útil para desarrollo y testing.
-// Nota: BACKEND_URL debe apuntar al host del backend (sin /api al final)
-// To seed the database with activities, run in terminal:
 // BACKEND_URL="http://localhost:3001" npm run seed:activities
 // Hace falta tener FLASK_DEBUG=1 en .env para estar en modo desarrollador
 
