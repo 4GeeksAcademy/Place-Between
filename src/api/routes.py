@@ -443,6 +443,50 @@ def login():
 
     return jsonify({"access_token": access_token, "user": user.serialize()}), 200
 
+# --------------------------
+# USERS EDIT
+# --------------------------
+
+@api.route("/users/user", methods=["GET"])
+@jwt_required()
+def get_current_user():
+    user_id = int(get_jwt_identity())
+    user = User.query.get(user_id)
+
+    if not user:
+        return jsonify({"msg": "Usuario no encontrado"}), 404
+
+    return jsonify({
+        "id": user.id,
+        "email": user.email,
+        "username": user.username,
+        "emails_enabled": getattr(user, "emails_enabled", True),
+        "timezone": user.timezone,
+    }), 200
+
+#### PATCH EDITA CAMPOS ESPECIFICOS 
+
+@api.route("/users/user", methods=["PATCH"])
+@jwt_required()
+def update_user():
+    user_id = int(get_jwt_identity())
+    user = User.query.get(user_id)
+
+    if not user:
+        return jsonify({"msg": "Usuario no encontrado"}), 404
+
+    body = request.get_json(silent=True)
+
+    if "username" in body:
+        user.username = body["username"].strip()
+
+    if "emails_enabled" in body:
+        user.emails_enabled = bool(body["emails_enabled"])
+
+    db.session.commit()
+
+    return jsonify({"success": True}), 200
+
 
 # --------------------------
 # PASSWORD RESET
@@ -1174,8 +1218,8 @@ EMOTION_PLAYLISTS = {
 }
 
 
-@api.route("/music/emotion-music", methods=["GET"])
-def get_session_emotion_music():
+@api.route("/music", methods=["GET"])
+def get_session_or_emotion_music():
     daily_session_id = request.args.get("daily_session_id")
 
     if not daily_session_id:
