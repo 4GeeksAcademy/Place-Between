@@ -535,6 +535,50 @@ def verify_email():
         print("Error verify-email (debug):", repr(e))
         return jsonify({"msg": "Token inválido o expirado"}), 400
 
+# --------------------------
+# USERS EDIT
+# --------------------------
+
+@api.route("/users/user", methods=["GET"])
+@jwt_required()
+def get_current_user():
+    user_id = int(get_jwt_identity())
+    user = User.query.get(user_id)
+
+    if not user:
+        return jsonify({"msg": "Usuario no encontrado"}), 404
+
+    return jsonify({
+        "id": user.id,
+        "email": user.email,
+        "username": user.username,
+        "emails_enabled": getattr(user, "emails_enabled", True),
+        "timezone": user.timezone,
+    }), 200
+
+#### PATCH EDITA CAMPOS ESPECIFICOS 
+
+@api.route("/users/user", methods=["PATCH"])
+@jwt_required()
+def update_user():
+    user_id = int(get_jwt_identity())
+    user = User.query.get(user_id)
+
+    if not user:
+        return jsonify({"msg": "Usuario no encontrado"}), 404
+
+    body = request.get_json(silent=True)
+
+    if "username" in body:
+        user.username = body["username"].strip()
+
+    if "emails_enabled" in body:
+        user.emails_enabled = bool(body["emails_enabled"])
+
+    db.session.commit()
+
+    return jsonify({"success": True}), 200
+
 #--------------------------
 # PASSWORD RESET
 # --------------------------
@@ -1960,3 +2004,96 @@ def complete_goal(goal_id):
         "daily_session": daily_session.serialize(),
         "awarded_points": reward if did_award else 0
     }), 200
+
+
+# GET EMOTION MUSIC AND DEFAULT TRACK
+
+EMOTION_PLAYLISTS = {
+    "alegria": {
+        "day": "https://soundcloud.com/sant_iagoo/sets/focus",
+        "night": "https://soundcloud.com/sant_iagoo/sets/luz-suave"
+    },
+    "tristeza": {
+        "day": "https://soundcloud.com/sant_iagoo/sets/focus",
+        "night": "https://soundcloud.com/sant_iagoo/sets/contencion"
+    },
+    "ira": {
+        "day": "https://soundcloud.com/sant_iagoo/sets/descarga_controlada",
+        "night": "https://soundcloud.com/sant_iagoo/sets/contencion"
+    },
+    "miedo/ansiedad": {
+        "day": "https://soundcloud.com/sant_iagoo/sets/descarga_controlada",
+        "night": "https://soundcloud.com/sant_iagoo/sets/contencion"
+    }, 
+    "ansiedad": {
+        "day": "https://soundcloud.com/sant_iagoo/sets/descarga_controlada",
+        "night": "https://soundcloud.com/sant_iagoo/sets/contencion"
+    }, 
+    "miedo": {
+        "day": "https://soundcloud.com/sant_iagoo/sets/descarga_controlada",
+        "night": "https://soundcloud.com/sant_iagoo/sets/contencion"
+    }, 
+    "default": {
+        "day": "https://soundcloud.com/sant_iagoo/sets/default-track",
+        "night": "https://soundcloud.com/sant_iagoo/sets/default-track"
+    }
+}
+
+
+@api.route("/music/emotion", methods=["GET"])
+@jwt_required()
+def get_background_music():
+    user_id = get_jwt_identity()
+
+    today = date.today()
+    session = (
+        DailySession.query
+        .filter_by(user_id=user_id, session_date=today, is_active=True)
+        .order_by(DailySession.created_at.desc())
+        .first()
+    )
+
+    if session:
+        phase = "day" if session.session_type == SessionType.day else "night"
+    else:
+        hour = datetime.now().hour
+        phase = "night" if hour >= 19 or hour < 6 else "day"
+
+    checkin = None
+    if session:
+        checkin = (
+            EmotionCheckin.query
+            .filter_by(daily_session_id=session.id)
+            .order_by(EmotionCheckin.created_at.desc())
+            .first()
+        )
+
+    if not checkin or not checkin.emotion:
+        return jsonify({
+            "emotion": None,
+            "session_type": phase,
+            "url_music": EMOTION_PLAYLISTS["default"][phase]
+        }), 200
+
+    emotion_name = checkin.emotion.name.lower()
+    url_music = (
+        EMOTION_PLAYLISTS
+        .get(emotion_name, EMOTION_PLAYLISTS["default"])
+        .get(phase)
+    )
+
+    return jsonify({
+        "emotion": emotion_name,
+        "session_type": phase,
+        "url_music": url_music
+    }), 200
+
+
+DEFAULT_TRACK = "https://soundcloud.com/sant_iagoo/sets/default-track"
+
+@api.route("/music/default", methods=["GET"])
+def get_default_music():
+    return jsonify({
+        "url_music": DEFAULT_TRACK
+    }), 200
+
