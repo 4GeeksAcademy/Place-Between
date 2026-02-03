@@ -61,6 +61,9 @@ class User(db.Model):
     password_hash: Mapped[str] = mapped_column(String(255), nullable=False)
     username: Mapped[str] = mapped_column(
         String(80), unique=True, nullable=False, index=True)
+    
+    # Avatar simple por URL (si luego quieres upload real, se cambia el flujo)
+    avatar_url: Mapped[str | None] = mapped_column(String(500), nullable=True)
 
     # Zona horaria IANA: "Europe/Lisbon", "America/Lima", etc.
     timezone: Mapped[str] = mapped_column(
@@ -112,6 +115,7 @@ class User(db.Model):
             "id": self.id,
             "email": self.email,
             "username": self.username,
+            "avatar_url": self.avatar_url,
             "timezone": self.timezone,
             "day_start_time": self.day_start_time.strftime("%H:%M"),
             "night_start_time": self.night_start_time.strftime("%H:%M"),

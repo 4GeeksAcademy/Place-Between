@@ -558,12 +558,15 @@ def get_current_user():
         "id": user.id,
         "email": user.email,
         "username": user.username,
-        "emails_enabled": getattr(user, "emails_enabled", True),
+        "is_email_verified": bool(getattr(user, "is_email_verified", False)),
         "timezone": user.timezone,
+        "day_start_time": user.day_start_time.strftime("%H:%M") if user.day_start_time else "06:00",
+        "night_start_time": user.night_start_time.strftime("%H:%M") if user.night_start_time else "19:00",
+        "emails_enabled": bool(getattr(user, "emails_enabled", True)),
+        "avatar_url": getattr(user, "avatar_url", None),
     }), 200
 
 # PATCH EDITA CAMPOS ESPECIFICOS
-
 
 @api.route("/users/user", methods=["PATCH"])
 @jwt_required()
@@ -574,21 +577,77 @@ def update_user():
     if not user:
         return jsonify({"msg": "Usuario no encontrado"}), 404
 
-    body = request.get_json(silent=True)
+    body = request.get_json(silent=True) or {}
 
     if "username" in body:
-        user.username = body["username"].strip()
+        username = (body.get("username") or "").strip()
+        if not username:
+            return jsonify({"msg": "username no puede estar vacío"}), 400
+        user.username = username
 
     if "emails_enabled" in body:
-        user.emails_enabled = bool(body["emails_enabled"])
+        user.emails_enabled = bool(body.get("emails_enabled"))
+
+    if "timezone" in body:
+        tz = (body.get("timezone") or "").strip()
+        if not tz:
+            return jsonify({"msg": "timezone no puede estar vacío"}), 400
+        # Validación IANA
+        try:
+            ZoneInfo(tz)
+        except Exception:
+            return jsonify({"msg": "timezone inválida (IANA). Ej: Europe/Madrid"}), 400
+        user.timezone = tz
+
+    if "day_start_time" in body:
+        t = _parse_hhmm(body.get("day_start_time"))
+        if not t:
+            return jsonify({"msg": "day_start_time inválido (HH:MM)"}), 400
+        user.day_start_time = t
+
+    if "night_start_time" in body:
+        t = _parse_hhmm(body.get("night_start_time"))
+        if not t:
+            return jsonify({"msg": "night_start_time inválido (HH:MM)"}), 400
+        user.night_start_time = t
+
+    if "avatar_url" in body:
+        v = (body.get("avatar_url") or "").strip()
+        user.avatar_url = v if v else None
 
     db.session.commit()
-
     return jsonify({"success": True}), 200
 
 # --------------------------
 # PASSWORD RESET
 # --------------------------
+
+@api.route("/users/password", methods=["PATCH"])
+@jwt_required()
+def change_password():
+    user_id = int(get_jwt_identity())
+    user = User.query.get(user_id)
+    if not user:
+        return jsonify({"msg": "Usuario no encontrado"}), 404
+
+    body = request.get_json(silent=True) or {}
+    current_password = body.get("current_password") or ""
+    new_password = body.get("new_password") or ""
+
+    if not current_password or not new_password:
+        return jsonify({"msg": "current_password y new_password son obligatorios"}), 400
+
+    if len(new_password) < 6:
+        return jsonify({"msg": "La nueva contraseña debe tener al menos 6 caracteres"}), 400
+
+    if not user.check_password(current_password):
+        return jsonify({"msg": "Contraseña actual incorrecta"}), 401
+
+    user.set_password(new_password)
+    db.session.commit()
+
+    return jsonify({"success": True}), 200
+
 
 
 @api.route("/auth/forgot-password", methods=["POST"])
