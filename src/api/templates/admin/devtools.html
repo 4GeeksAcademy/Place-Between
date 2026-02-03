@@ -1,17 +1,168 @@
-{% extends 'admin/master.html' %}
-{% block body %}
-  <div class="container mt-4">
-    <h3>Dev Tools</h3>
-    <p>Acciones de desarrollo (solo con FLASK_DEBUG=1).</p>
+{% extends 'admin/master.html' %} {% block body %}
+<div class="container mt-4">
+  <h3>Dev Tools</h3>
+  <p>Acciones de desarrollo (solo con FLASK_DEBUG=1).</p>
 
-    <form method="post" action="{{ url_for('devtools.seed_activities') }}">
-      <button class="btn btn-primary">Seed Activities (presets)</button>
-    </form>
+  <form method="post" action="{{ url_for('devtools.seed_activities') }}">
+    <button class="btn btn-primary">Seed Activities (presets)</button>
+  </form>
 
-    <hr />
+  <hr />
 
-    <form method="post" action="{{ url_for('devtools.seed_goal_templates') }}">
-      <button class="btn btn-success">Seed Goal Templates (presets)</button>
-    </form>
+  <form method="post" action="{{ url_for('devtools.seed_goal_templates') }}">
+    <button class="btn btn-success">Seed Goal Templates (presets)</button>
+  </form>
+</div>
+
+<hr />
+
+<div style="display: flex; gap: 12px; flex-wrap: wrap; margin-bottom: 16px">
+  <button id="btn-seed-emotions" class="btn btn-primary">
+    Seed Emotions (presets)
+  </button>
+</div>
+
+<hr />
+
+<h3>Fake history</h3>
+<p>Genera sesiones/completions/checkins para un usuario concreto.</p>
+
+<div style="display: flex; gap: 12px; align-items: flex-end; flex-wrap: wrap">
+  <div>
+    <label>Email (recomendado)</label>
+    <input id="fake-email" class="form-control" placeholder="user@mail.com" />
   </div>
+
+  <div>
+    <label>Días</label>
+    <input
+      id="fake-days"
+      class="form-control"
+      type="number"
+      value="21"
+      min="1"
+      max="180"
+    />
+  </div>
+
+  <div>
+    <label>Max activities / sesión</label>
+    <input
+      id="fake-max"
+      class="form-control"
+      type="number"
+      value="3"
+      min="0"
+      max="5"
+    />
+  </div>
+
+  <button id="btn-fake-history" class="btn btn-warning">
+    Seed Fake History
+  </button>
+</div>
+
+<hr />
+
+<h3>Reset user data</h3>
+<p>Elimina sesiones/completions/checkins de un usuario (opcional: goals).</p>
+
+<div style="display: flex; gap: 12px; align-items: flex-end; flex-wrap: wrap">
+  <div>
+    <label>Email</label>
+    <input id="reset-email" class="form-control" placeholder="user@mail.com" />
+  </div>
+
+  <div
+    style="display: flex; gap: 8px; align-items: center; padding-bottom: 6px"
+  >
+    <input id="reset-include-goals" type="checkbox" />
+    <label for="reset-include-goals" style="margin: 0">Incluir goals</label>
+  </div>
+
+  <button id="btn-reset-user" class="btn btn-danger">Reset User Data</button>
+</div>
+
+<hr />
+
+<pre
+  id="devtools-output"
+  style="
+    margin-top: 16px;
+    background: #111;
+    color: #0f0;
+    padding: 12px;
+    border-radius: 8px;
+    max-height: 320px;
+    overflow: auto;
+  "
+></pre>
+
+<script>
+  const out = document.getElementById("devtools-output");
+  const log = (obj) => {
+    out.textContent = JSON.stringify(obj, null, 2);
+  };
+
+  document
+    .getElementById("btn-seed-emotions")
+    .addEventListener("click", async () => {
+      out.textContent = "Seeding emotions...";
+      const res = await fetch("/api/dev/seed/emotions/presets", {
+        method: "POST",
+      });
+      const data = await res.json().catch(() => ({}));
+      log({ status: res.status, data });
+    });
+
+  document
+    .getElementById("btn-fake-history")
+    .addEventListener("click", async () => {
+      const email = document.getElementById("fake-email").value.trim();
+      const days = Number(document.getElementById("fake-days").value || 21);
+      const maxA = Number(document.getElementById("fake-max").value || 3);
+
+      out.textContent = "Seeding fake history...";
+
+      const res = await fetch("/api/dev/seed/history/fake", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          email,
+          days,
+          max_activities_per_session: maxA,
+          day_sessions_ratio: 1.0,
+          night_sessions_ratio: 0.85,
+        }),
+      });
+
+      const data = await res.json().catch(() => ({}));
+      log({ status: res.status, data });
+    });
+
+  document
+    .getElementById("btn-reset-user")
+    .addEventListener("click", async () => {
+      const email = document.getElementById("reset-email").value.trim();
+      const includeGoals = document.getElementById(
+        "reset-include-goals",
+      ).checked;
+
+      if (!email) {
+        log({ status: 400, error: "Email requerido para reset." });
+        return;
+      }
+
+      out.textContent = "Resetting user data...";
+
+      const res = await fetch("/api/dev/reset/user/data", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email, include_goals: includeGoals }),
+      });
+
+      const data = await res.json().catch(() => ({}));
+      log({ status: res.status, data });
+    });
+</script>
 {% endblock %}

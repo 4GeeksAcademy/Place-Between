@@ -2,6 +2,7 @@ import os
 import json
 import re
 import unicodedata
+import random
 from collections import defaultdict
 from datetime import datetime, timedelta, timezone, date
 
@@ -1465,6 +1466,356 @@ def dev_deactivate_activity():
     db.session.commit()
 
     return jsonify({"msg": "Actividad desactivada", "external_id": external_id}), 200
+
+# -------------------------
+# DEV: EMOTIONS SEED
+# -------------------------
+
+
+@api.route("/dev/seed/emotions/bulk", methods=["POST"])
+def dev_seed_emotions_bulk():
+    """
+    Bulk upsert de emociones.
+    Body: { "emotions": [{name, description?, value?, url_music?}, ...] }
+    """
+    if not dev_only():
+        return jsonify({"msg": "Not found"}), 404
+
+    body = request.get_json(silent=True) or {}
+    items = body.get("emotions") or []
+    if not isinstance(items, list) or not items:
+        return jsonify({"msg": "emotions debe ser una lista no vacía"}), 400
+
+    created = 0
+    updated = 0
+    skipped = 0
+
+    for e in items:
+        name = (e.get("name") or "").strip()
+        if not name:
+            skipped += 1
+            continue
+
+        q = Emotion.query.filter_by(name=name).first()
+        if not q:
+            q = Emotion(
+                name=name,
+                description=e.get("description"),
+                value=e.get("value"),
+                url_music=e.get("url_music"),
+            )
+            db.session.add(q)
+            created += 1
+        else:
+            q.description = e.get("description", q.description)
+            q.value = e.get("value", q.value)
+            q.url_music = e.get("url_music", q.url_music)
+            updated += 1
+
+    db.session.commit()
+    return jsonify({
+        "msg": "Emotions bulk seed OK",
+        "created": created,
+        "updated": updated,
+        "skipped": skipped
+    }), 200
+
+
+@api.route("/dev/seed/emotions/presets", methods=["POST"])
+def dev_seed_emotions_presets():
+    """
+    Seed de emociones preset desde JSON (sin terminal).
+    Fuente única: src/front/data/emotions.seed.json
+    """
+    if not dev_only():
+        return jsonify({"msg": "Not found"}), 404
+
+    base_dir = os.path.dirname(os.path.realpath(__file__))  # .../src/api
+    seed_path = os.path.join(base_dir, "..", "front",
+                             "data", "emotions.seed.json")
+
+    try:
+        with open(seed_path, "r", encoding="utf-8") as f:
+            payload = json.load(f)
+    except Exception as e:
+        return jsonify({"msg": f"No se pudo leer emotions.seed.json: {e}"}), 500
+
+    items = payload.get("emotions") or []
+    if not isinstance(items, list) or not items:
+        return jsonify({"msg": "Formato inválido: se espera { emotions: [] }"}), 400
+
+    created = 0
+    updated = 0
+    skipped = 0
+
+    for e in items:
+        name = (e.get("name") or "").strip()
+        if not name:
+            skipped += 1
+            continue
+
+        q = Emotion.query.filter_by(name=name).first()
+        if not q:
+            q = Emotion(
+                name=name,
+                description=e.get("description"),
+                value=e.get("value"),
+                url_music=e.get("url_music"),
+            )
+            db.session.add(q)
+            created += 1
+        else:
+            q.description = e.get("description", q.description)
+            q.value = e.get("value", q.value)
+            q.url_music = e.get("url_music", q.url_music)
+            updated += 1
+
+    db.session.commit()
+    return jsonify({
+        "msg": "Emotions presets seed OK (from JSON)",
+        "created": created,
+        "updated": updated,
+        "skipped": skipped,
+        "seed_path": "src/front/data/emotions.seed.json"
+    }), 200
+
+
+# -------------------------
+# DEV: FAKE HISTORY (activities + emotions)
+# -------------------------
+
+@api.route("/dev/seed/history/fake", methods=["POST"])
+def dev_seed_fake_history():
+    """
+    Genera datos fake para que la app parezca 'viva'.
+    Crea sesiones (día/noche), activity completions y emotion checkins en los últimos N días.
+
+    Body (opcional):
+    {
+      "user_id": 1,
+      "email": "user@mail.com",
+      "days": 21,
+      "max_activities_per_session": 3,
+      "day_sessions_ratio": 1.0,   # 0..1 prob de crear sesión día por fecha
+      "night_sessions_ratio": 0.8  # 0..1 prob de crear sesión noche por fecha
+    }
+    """
+    if not dev_only():
+        return jsonify({"msg": "Not found"}), 404
+
+    body = request.get_json(silent=True) or {}
+
+    user = None
+    user_id = body.get("user_id")
+    email = (body.get("email") or "").strip()
+
+    if user_id:
+        user = User.query.get(int(user_id))
+    elif email:
+        user = User.query.filter_by(email=email).first()
+
+    if not user:
+        return jsonify({"msg": "user_id o email requerido (usuario no encontrado)"}), 400
+
+    days = int(body.get("days") or 14)
+    days = max(1, min(days, 180))  # hard cap
+
+    max_per_session = int(body.get("max_activities_per_session") or 3)
+    max_per_session = max(0, min(max_per_session, 5))
+
+    day_ratio = float(body.get("day_sessions_ratio") or 1.0)
+    night_ratio = float(body.get("night_sessions_ratio") or 0.8)
+    day_ratio = max(0.0, min(day_ratio, 1.0))
+    night_ratio = max(0.0, min(night_ratio, 1.0))
+
+    activities = Activity.query.all()
+    emotions = Emotion.query.all()
+
+    if not activities:
+        return jsonify({"msg": "No hay activities en DB. Seed activities primero."}), 400
+    if not emotions:
+        return jsonify({"msg": "No hay emotions en DB. Seed emotions primero."}), 400
+
+    created_sessions = 0
+    created_completions = 0
+    created_checkins = 0
+
+    today = date.today()
+
+    # Distribución simple de puntos (cumple constraint 0/5/10/20)
+    points_choices = [20, 10, 5]
+
+    for i in range(days):
+        d = today - timedelta(days=i)
+
+        for stype, ratio in [(SessionType.day, day_ratio), (SessionType.night, night_ratio)]:
+            if random.random() > ratio:
+                continue
+
+            session = DailySession.query.filter_by(
+                user_id=user.id, session_date=d, session_type=stype
+            ).first()
+
+            if not session:
+                session = DailySession(
+                    user_id=user.id,
+                    session_date=d,
+                    session_type=stype,
+                    points_earned=0,
+                    is_active=False,
+                )
+                db.session.add(session)
+                db.session.flush()
+                created_sessions += 1
+
+            # Activity completions
+            if max_per_session > 0:
+                existing_ids = {
+                    ac.activity_id for ac in ActivityCompletion.query.filter_by(daily_session_id=session.id).all()
+                }
+
+                n = random.randint(0, max_per_session)
+                sample_pool = [
+                    a for a in activities if a.id not in existing_ids]
+                random.shuffle(sample_pool)
+                chosen = sample_pool[:n]
+
+                awarded_points = 0
+                for idx_a, act in enumerate(chosen):
+                    pts = points_choices[idx_a] if idx_a < len(
+                        points_choices) else 0
+                    comp = ActivityCompletion(
+                        daily_session_id=session.id,
+                        activity_id=act.id,
+                        points_awarded=pts,
+                        completed_at=datetime.utcnow() - timedelta(days=i, hours=random.randint(0, 23)),
+                    )
+                    db.session.add(comp)
+                    created_completions += 1
+                    awarded_points += pts
+
+                session.points_earned = int(
+                    session.points_earned or 0) + awarded_points
+
+            # Emotion checkin (garantizado en noche si no existe)
+            if stype == SessionType.night:
+                existing_checkin = EmotionCheckin.query.filter_by(
+                    daily_session_id=session.id).first()
+                if not existing_checkin:
+                    emo = random.choice(emotions)
+                    checkin = EmotionCheckin(
+                        daily_session_id=session.id,
+                        emotion_id=emo.id,
+                        intensity=random.randint(3, 9),
+                        note=None,
+                        created_at=datetime.utcnow() - timedelta(days=i, hours=random.randint(0, 23)),
+                    )
+                    db.session.add(checkin)
+                    created_checkins += 1
+
+    db.session.commit()
+
+    return jsonify({
+        "msg": "Fake history seed OK",
+        "user_id": user.id,
+        "days": days,
+        "created_sessions": created_sessions,
+        "created_completions": created_completions,
+        "created_checkins": created_checkins,
+    }), 200
+
+
+@api.route("/dev/reset/user/data", methods=["POST"])
+def dev_reset_user_data():
+    """
+    Resetea datos de un usuario (historial) desde DevTools.
+
+    Body:
+    {
+      "email": "user@mail.com" | null,
+      "user_id": 123 | null,
+      "include_goals": false
+    }
+    """
+    if not dev_only():
+        return jsonify({"msg": "Not found"}), 404
+
+    body = request.get_json(silent=True) or {}
+    email = (body.get("email") or "").strip()
+    user_id = body.get("user_id")
+    include_goals = bool(body.get("include_goals") or False)
+
+    user = None
+    if user_id:
+        try:
+            user = User.query.get(int(user_id))
+        except Exception:
+            user = None
+    elif email:
+        user = User.query.filter_by(email=email).first()
+
+    if not user:
+        return jsonify({"msg": "user_id o email requerido (usuario no encontrado)"}), 400
+
+    # 1) sesiones del usuario
+    sessions = DailySession.query.filter_by(user_id=user.id).all()
+    session_ids = [s.id for s in sessions]
+
+    deleted_sessions = 0
+    deleted_completions = 0
+    deleted_checkins = 0
+    deleted_session_goals = 0
+    deleted_goal_progress = 0
+    deleted_goals = 0
+
+    if session_ids:
+        deleted_completions = ActivityCompletion.query.filter(
+            ActivityCompletion.daily_session_id.in_(session_ids)
+        ).delete(synchronize_session=False)
+
+        deleted_checkins = EmotionCheckin.query.filter(
+            EmotionCheckin.daily_session_id.in_(session_ids)
+        ).delete(synchronize_session=False)
+
+        # Si existe DailySessionGoal en tu proyecto, límpialo
+        try:
+            deleted_session_goals = DailySessionGoal.query.filter(
+                DailySessionGoal.daily_session_id.in_(session_ids)
+            ).delete(synchronize_session=False)
+        except Exception:
+            deleted_session_goals = 0
+
+        deleted_sessions = DailySession.query.filter(
+            DailySession.id.in_(session_ids)
+        ).delete(synchronize_session=False)
+
+    # 2) goals del usuario (opcional)
+    if include_goals:
+        # borra progreso, luego goals
+        try:
+            deleted_goal_progress = GoalProgress.query.filter_by(
+                user_id=user.id
+            ).delete(synchronize_session=False)
+        except Exception:
+            deleted_goal_progress = 0
+
+        deleted_goals = Goal.query.filter_by(
+            user_id=user.id).delete(synchronize_session=False)
+
+    db.session.commit()
+
+    return jsonify({
+        "msg": "Reset user data OK",
+        "user_id": user.id,
+        "include_goals": include_goals,
+        "deleted_sessions": deleted_sessions,
+        "deleted_completions": deleted_completions,
+        "deleted_checkins": deleted_checkins,
+        "deleted_session_goals": deleted_session_goals,
+        "deleted_goal_progress": deleted_goal_progress,
+        "deleted_goals": deleted_goals
+    }), 200
+
 
 # -------------------------
 # REMINDERS

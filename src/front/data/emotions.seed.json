@@ -1,0 +1,28 @@
+{
+  "emotions": [
+    {
+      "name": "Alegría",
+      "description": "Energía positiva, ligereza y apertura.",
+      "value": 2,
+      "url_music": null
+    },
+    {
+      "name": "Tristeza",
+      "description": "Bajada de energía, necesidad de cuidado y descanso.",
+      "value": -1,
+      "url_music": null
+    },
+    {
+      "name": "Ira",
+      "description": "Activación intensa, límite cruzado, necesidad de canalizar.",
+      "value": 1,
+      "url_music": null
+    },
+    {
+      "name": "Miedo",
+      "description": "Alerta y anticipación; pide seguridad y calma.",
+      "value": -2,
+      "url_music": null
+    }
+  ]
+}
