@@ -1,16 +1,24 @@
 import os
 import json
 import re
+import uuid
 import unicodedata
 import random
 from collections import defaultdict
 from datetime import datetime, timedelta, timezone, date
-
-from flask import request, jsonify, Blueprint
+from flask import request, jsonify, Blueprint, send_from_directory
 from flask_cors import CORS
 from flask_jwt_extended import create_access_token, jwt_required, get_jwt_identity, decode_token
+from zoneinfo import ZoneInfo
 from werkzeug.security import generate_password_hash
+from werkzeug.utils import secure_filename
 
+from datetime import time as dtime
+from datetime import datetime, timedelta, timezone
+from api.service_loops.welcome_user import send_welcome_transactional, LoopsError
+from api.service_loops.reset_password import send_password_reset
+from api.service_loops.verify_email import send_verify_email, LoopsError
+from api.service_loops.inactive_reminder import send_inactive_reminder, LoopsError
 from api.models import (
     db,
     User,
@@ -32,17 +40,7 @@ from api.models import (
     ReminderType,
     ReminderMode
 )
-from flask_cors import CORS
-from datetime import time as dtime
-from datetime import datetime, timedelta, timezone
-from flask_jwt_extended import create_access_token, jwt_required, get_jwt_identity
-from api.service_loops.welcome_user import send_welcome_transactional, LoopsError
-from api.service_loops.reset_password import send_password_reset
-from api.service_loops.verify_email import send_verify_email, LoopsError
-from api.service_loops.inactive_reminder import send_inactive_reminder, LoopsError
-from zoneinfo import ZoneInfo
-import os
-from werkzeug.security import generate_password_hash
+
 
 api = Blueprint("api", __name__)
 CORS(api)
@@ -410,9 +408,20 @@ def build_mirror_range_payload(user_id: int, start_date, end_date):
     }
 
 
+ALLOWED_EXT = {"png", "jpg", "jpeg", "webp"}
+MAX_AVATAR_MB = 5
+
+
+def _allowed(filename: str) -> bool:
+    if "." not in filename:
+        return False
+    ext = filename.rsplit(".", 1)[1].lower()
+    return ext in ALLOWED_EXT
+
 # -------------------------
 # AUTH
 # -------------------------
+
 
 @api.route("/register", methods=["POST"])
 def register():
@@ -568,6 +577,7 @@ def get_current_user():
 
 # PATCH EDITA CAMPOS ESPECIFICOS
 
+
 @api.route("/users/user", methods=["PATCH"])
 @jwt_required()
 def update_user():
@@ -618,6 +628,56 @@ def update_user():
     db.session.commit()
     return jsonify({"success": True}), 200
 
+
+@api.route("/uploads/avatars/<path:filename>", methods=["GET"])
+def serve_avatar(filename):
+    # Ajusta esta ruta a tu estructura real
+    base_dir = os.path.dirname(os.path.realpath(__file__))  # .../src/api
+    folder = os.path.join(base_dir, "uploads", "avatars")
+    return send_from_directory(folder, filename)
+
+
+@api.route("/users/avatar", methods=["POST"])
+@jwt_required()
+def upload_avatar():
+    user_id = int(get_jwt_identity())
+    user = User.query.get(user_id)
+    if not user:
+        return jsonify({"msg": "Usuario no encontrado"}), 404
+
+    # Guard de tamaño (si el cliente manda Content-Length)
+    max_bytes = int(MAX_AVATAR_MB) * 1024 * 1024
+    if request.content_length and request.content_length > max_bytes:
+        return jsonify({"msg": f"El archivo supera el límite de {MAX_AVATAR_MB}MB"}), 413
+
+    if "file" not in request.files:
+        return jsonify({"msg": "Falta file"}), 400
+
+    file = request.files["file"]
+    if not file or file.filename == "":
+        return jsonify({"msg": "Archivo inválido"}), 400
+
+    if not _allowed(file.filename):
+        return jsonify({"msg": "Formato no permitido (png/jpg/jpeg/webp)"}), 400
+
+    base_dir = os.path.dirname(os.path.realpath(__file__))
+    folder = os.path.join(base_dir, "uploads", "avatars")
+    os.makedirs(folder, exist_ok=True)
+
+    original = secure_filename(file.filename)
+    ext = original.rsplit(".", 1)[1].lower()
+    fname = f"{uuid.uuid4().hex}.{ext}"
+    path = os.path.join(folder, fname)
+
+    file.save(path)
+
+    public_url = f"/api/uploads/avatars/{fname}"
+    user.avatar_url = public_url
+    db.session.commit()
+
+    return jsonify({"avatar_url": public_url}), 200
+
+
 # --------------------------
 # PASSWORD RESET
 # --------------------------
@@ -647,7 +707,6 @@ def change_password():
     db.session.commit()
 
     return jsonify({"success": True}), 200
-
 
 
 @api.route("/auth/forgot-password", methods=["POST"])

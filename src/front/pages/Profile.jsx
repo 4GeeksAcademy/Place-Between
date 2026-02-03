@@ -2,8 +2,7 @@ import React, { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import "../styles/pb-profile.css";
 
-const getBackendUrl = () =>
-  (import.meta.env.VITE_BACKEND_URL || "").replace(/\/$/, "");
+const getBackendUrl = () => (import.meta.env.VITE_BACKEND_URL || "").replace(/\/$/, "");
 
 const safeJson = async (res) => {
   try {
@@ -13,6 +12,21 @@ const safeJson = async (res) => {
   }
 };
 
+const detectTimeZone = () => {
+  try {
+    return Intl.DateTimeFormat().resolvedOptions().timeZone || "Europe/Madrid";
+  } catch {
+    return "Europe/Madrid";
+  }
+};
+
+const resolveAvatarSrc = (backendUrl, avatarUrl) => {
+  const url = (avatarUrl || "").trim();
+  if (!url) return "";
+  if (url.startsWith("/api/")) return `${backendUrl}${url}`; // dev-safe
+  return url;
+};
+
 export const Profile = () => {
   const navigate = useNavigate();
   const BACKEND_URL = getBackendUrl();
@@ -20,7 +34,6 @@ export const Profile = () => {
 
   const [loading, setLoading] = useState(true);
   const [savingProfile, setSavingProfile] = useState(false);
-
   const [status, setStatus] = useState({ error: "", success: "" });
 
   const [profile, setProfile] = useState({
@@ -28,7 +41,7 @@ export const Profile = () => {
     email: "",
     username: "",
     is_email_verified: false,
-    timezone: "UTC",
+    timezone: "Europe/Madrid",
     day_start_time: "06:00",
     night_start_time: "19:00",
     emails_enabled: true,
@@ -36,10 +49,12 @@ export const Profile = () => {
   });
 
   // Preferencias locales (no DB)
-  const [musicPrefs, setMusicPrefs] = useState(() => ({
-    mode: localStorage.getItem("pb_music_mode") || "auto",
-    enabled: localStorage.getItem("pb_sound_enabled") === "1",
-  }));
+  const [musicPrefs, setMusicPrefs] = useState(() => {
+    const mode = localStorage.getItem("pb_music_mode") || "auto";
+    const v = localStorage.getItem("pb_sound_enabled");
+    const enabled = v === null ? true : v === "1";
+    return { mode, enabled };
+  });
 
   // Cambio contraseña (backend)
   const [pw, setPw] = useState({
@@ -53,6 +68,12 @@ export const Profile = () => {
     if (!token) return null;
     return { Authorization: `Bearer ${token}` };
   }, [token]);
+
+  // Fondo full-viewport solo para Profile (evita “blanco” fuera del container)
+  useEffect(() => {
+    document.body.classList.add("pb-page-profile");
+    return () => document.body.classList.remove("pb-page-profile");
+  }, []);
 
   useEffect(() => {
     if (!token) {
@@ -72,12 +93,14 @@ export const Profile = () => {
         const data = await safeJson(res);
         if (!res.ok) throw new Error(data?.msg || "No se pudo cargar el perfil.");
 
+        const tz = data.timezone || detectTimeZone() || "Europe/Madrid";
+
         setProfile({
           id: data.id ?? null,
           email: data.email || "",
           username: data.username || "",
           is_email_verified: !!data.is_email_verified,
-          timezone: data.timezone || "UTC",
+          timezone: tz,
           day_start_time: data.day_start_time || "06:00",
           night_start_time: data.night_start_time || "19:00",
           emails_enabled: data.emails_enabled ?? true,
@@ -111,7 +134,7 @@ export const Profile = () => {
     try {
       const payload = {
         username: profile.username,
-        timezone: profile.timezone,
+        timezone: profile.timezone || "Europe/Madrid",
         day_start_time: profile.day_start_time,
         night_start_time: profile.night_start_time,
         emails_enabled: profile.emails_enabled,
@@ -131,6 +154,9 @@ export const Profile = () => {
       if (!res.ok) throw new Error(data?.msg || "Error al guardar perfil.");
 
       setStatus({ error: "", success: "Perfil actualizado correctamente." });
+
+      // fuerza recalcular phase (AppLayout) + actualizar páginas legacy que lo escuchen
+      window.dispatchEvent(new Event("pb:user-prefs-updated"));
     } catch (e) {
       setStatus({ error: e?.message || "Error al guardar.", success: "" });
     } finally {
@@ -144,6 +170,9 @@ export const Profile = () => {
 
     localStorage.setItem("pb_music_mode", merged.mode);
     localStorage.setItem("pb_sound_enabled", merged.enabled ? "1" : "0");
+
+    // refresca música/dock si escucha eventos
+    window.dispatchEvent(new Event("pb:emotion-updated"));
   };
 
   const changePassword = async (e) => {
@@ -202,6 +231,11 @@ export const Profile = () => {
     return parts.map((x) => x[0]?.toUpperCase()).join("");
   }, [profile.username]);
 
+  const avatarSrc = useMemo(
+    () => resolveAvatarSrc(BACKEND_URL, profile.avatar_url),
+    [BACKEND_URL, profile.avatar_url]
+  );
+
   if (loading) {
     return (
       <div className="container py-4">
@@ -215,15 +249,7 @@ export const Profile = () => {
       <div className="pb-profile-header">
         <div className="pb-profile-title">
           <h2 className="mb-1">Perfil</h2>
-          <div className="text-secondary">
-            Ajustes de cuenta, preferencias y seguridad.
-          </div>
-        </div>
-
-        <div className="pb-profile-badges">
-          <span className={`badge ${profile.is_email_verified ? "text-bg-success" : "text-bg-secondary"}`}>
-            {profile.is_email_verified ? "Email verificado" : "Email no verificado"}
-          </span>
+          <div className="pb-subtitle">Email sin verificar</div>
         </div>
       </div>
 
@@ -235,14 +261,13 @@ export const Profile = () => {
           <div className="pb-card">
             <div className="pb-card-header">
               <h5 className="mb-0">Cuenta</h5>
-              <div className="text-secondary small">Datos básicos e identidad visual.</div>
             </div>
 
             <form onSubmit={saveProfile} className="pb-card-body">
               <div className="pb-profile-identity">
                 <div className="pb-avatar">
-                  {profile.avatar_url ? (
-                    <img src={profile.avatar_url} alt="avatar" />
+                  {avatarSrc ? (
+                    <img src={avatarSrc} alt="avatar" />
                   ) : (
                     <div className="pb-avatar-fallback">{initials}</div>
                   )}
@@ -250,22 +275,13 @@ export const Profile = () => {
 
                 <div className="flex-grow-1">
                   <div className="row g-3">
-                    <div className="col-12">
-                      <label className="form-label">URL de foto de perfil</label>
-                      <input
-                        className="form-control"
-                        name="avatar_url"
-                        value={profile.avatar_url}
-                        onChange={onChange}
-                        placeholder="https://… (opcional)"
-                      />
-                      <div className="form-text">
-                        Por ahora es un enlace. Si luego quieres subida real, lo integramos con storage.
-                      </div>
+                    <div className="col-12 col-md-6">
+                      <label className="form-label">Email</label>
+                      <input className="form-control" value={profile.email} disabled />
                     </div>
 
                     <div className="col-12 col-md-6">
-                      <label className="form-label">Nombre de usuario</label>
+                      <label className="form-label">Username</label>
                       <input
                         className="form-control"
                         name="username"
@@ -274,9 +290,8 @@ export const Profile = () => {
                       />
                     </div>
 
-                    <div className="col-12 col-md-6">
-                      <label className="form-label">Email</label>
-                      <input className="form-control" value={profile.email} disabled />
+                    <div className="col-12">
+                      <div className="pb-help">Pulsa el avatar para editarlo</div>
                     </div>
                   </div>
                 </div>
@@ -292,15 +307,15 @@ export const Profile = () => {
                     name="timezone"
                     value={profile.timezone}
                     onChange={onChange}
-                    placeholder="Ej: Europe/Madrid"
+                    placeholder="Europe/Madrid"
                   />
-                  <div className="form-text">
-                    Formato IANA. Ejemplos: Europe/Madrid, America/Mexico_City.
+                  <div className="pb-help">
+                    Formato IANA. Impacta en el cálculo de día/noche.
                   </div>
                 </div>
 
                 <div className="col-6 col-md-3">
-                  <label className="form-label">Inicio del día</label>
+                  <label className="form-label">Día empieza</label>
                   <input
                     className="form-control"
                     type="time"
@@ -311,7 +326,7 @@ export const Profile = () => {
                 </div>
 
                 <div className="col-6 col-md-3">
-                  <label className="form-label">Inicio de la noche</label>
+                  <label className="form-label">Noche empieza</label>
                   <input
                     className="form-control"
                     type="time"
@@ -322,39 +337,43 @@ export const Profile = () => {
                 </div>
 
                 <div className="col-12">
-                  <div className="form-check form-switch">
+                  <div className="form-check">
                     <input
                       className="form-check-input"
                       type="checkbox"
                       name="emails_enabled"
-                      checked={!!profile.emails_enabled}
+                      checked={profile.emails_enabled}
                       onChange={onChange}
+                      id="emails_enabled"
                     />
-                    <label className="form-check-label">
-                      Notificaciones por email (recordatorios y avisos)
+                    <label className="form-check-label" htmlFor="emails_enabled">
+                      Emails activados
                     </label>
                   </div>
                 </div>
-              </div>
 
-              <div className="d-flex gap-2 mt-4">
-                <button className="btn btn-primary" disabled={savingProfile}>
-                  {savingProfile ? "Guardando…" : "Guardar cambios"}
-                </button>
+                <div className="col-12 d-flex gap-2">
+                  <button className="btn btn-primary" type="submit" disabled={savingProfile}>
+                    {savingProfile ? "Guardando…" : "Guardar perfil"}
+                  </button>
+
+                  <button className="btn btn-outline-danger ms-auto" type="button" onClick={logoutHere}>
+                    Logout
+                  </button>
+                </div>
               </div>
             </form>
           </div>
 
           <div className="pb-card mt-3">
             <div className="pb-card-header">
-              <h5 className="mb-0">Seguridad</h5>
-              <div className="text-secondary small">Cambiar contraseña.</div>
+              <h5 className="mb-0">Cambiar contraseña</h5>
             </div>
 
-            <form onSubmit={changePassword} className="pb-card-body">
-              <div className="row g-3">
-                <div className="col-12">
-                  <label className="form-label">Contraseña actual</label>
+            <div className="pb-card-body">
+              <form onSubmit={changePassword} className="row g-3">
+                <div className="col-12 col-md-4">
+                  <label className="form-label">Actual</label>
                   <input
                     className="form-control"
                     type="password"
@@ -363,8 +382,8 @@ export const Profile = () => {
                   />
                 </div>
 
-                <div className="col-12 col-md-6">
-                  <label className="form-label">Nueva contraseña</label>
+                <div className="col-12 col-md-4">
+                  <label className="form-label">Nueva</label>
                   <input
                     className="form-control"
                     type="password"
@@ -373,8 +392,8 @@ export const Profile = () => {
                   />
                 </div>
 
-                <div className="col-12 col-md-6">
-                  <label className="form-label">Confirmar nueva contraseña</label>
+                <div className="col-12 col-md-4">
+                  <label className="form-label">Confirmar</label>
                   <input
                     className="form-control"
                     type="password"
@@ -382,83 +401,55 @@ export const Profile = () => {
                     onChange={(e) => setPw((p) => ({ ...p, confirm_password: e.target.value }))}
                   />
                 </div>
-              </div>
 
-              <div className="d-flex gap-2 mt-4">
-                <button className="btn btn-outline-primary" disabled={savingPw}>
-                  {savingPw ? "Actualizando…" : "Cambiar contraseña"}
-                </button>
-              </div>
-            </form>
+                <div className="col-12">
+                  <button className="btn btn-outline-light" disabled={savingPw}>
+                    {savingPw ? "Actualizando…" : "Confirmar cambio"}
+                  </button>
+                </div>
+              </form>
+            </div>
           </div>
         </div>
 
         <div className="col-12 col-lg-5">
           <div className="pb-card">
             <div className="pb-card-header">
-              <h5 className="mb-0">Preferencias locales</h5>
-              <div className="text-secondary small">
-                Estas preferencias se guardan en este dispositivo.
-              </div>
+              <h5 className="mb-0">Música</h5>
             </div>
 
             <div className="pb-card-body">
-              <div className="pb-pref-row">
-                <div>
-                  <div className="fw-semibold">Música (modo)</div>
-                  <div className="text-secondary small">
-                    Auto (emociones), Default o Silencio.
-                  </div>
-                </div>
-
+              <div className="mb-3">
+                <label className="form-label">Modo</label>
                 <select
                   className="form-select pb-pref-select"
                   value={musicPrefs.mode}
                   onChange={(e) => updateMusicPref({ mode: e.target.value })}
                 >
-                  <option value="auto">Auto (emociones)</option>
+                  <option value="auto">Auto</option>
                   <option value="default">Default</option>
-                  <option value="off">Silencio</option>
+                  <option value="off">Off</option>
                 </select>
               </div>
 
-              <div className="pb-pref-row mt-3">
-                <div>
-                  <div className="fw-semibold">Música (reproducción)</div>
-                  <div className="text-secondary small">
-                    Si está activada, empezará según el modo.
-                  </div>
-                </div>
-
-                <div className="form-check form-switch">
-                  <input
-                    className="form-check-input"
-                    type="checkbox"
-                    checked={!!musicPrefs.enabled}
-                    onChange={(e) => updateMusicPref({ enabled: e.target.checked })}
-                    disabled={musicPrefs.mode === "off"}
-                  />
-                </div>
+              <div className="form-check mb-3">
+                <input
+                  className="form-check-input"
+                  type="checkbox"
+                  checked={musicPrefs.enabled}
+                  onChange={(e) => updateMusicPref({ enabled: e.target.checked })}
+                  id="music_enabled"
+                />
+                <label className="form-check-label" htmlFor="music_enabled">
+                  Sonido habilitado
+                </label>
               </div>
 
-              <div className="alert alert-light mt-3 mb-0">
-                Consejo: si quieres que la música cambie al registrar emoción, usa modo <b>Auto</b>.
-              </div>
-            </div>
-          </div>
-
-          <div className="pb-card mt-3 pb-danger">
-            <div className="pb-card-header">
-              <h5 className="mb-0">Sesión</h5>
-              <div className="text-secondary small">Salir del modo privado.</div>
-            </div>
-            <div className="pb-card-body">
-              <button className="btn btn-outline-danger w-100" onClick={logoutHere}>
-                Cerrar sesión
+              <button className="btn btn-outline-light" type="button">
+                Guardar preferencias
               </button>
-              <div className="text-secondary small mt-2">
-                La sesión se cerrará en este navegador.
-              </div>
+
+              <div className="pb-help mt-2">El estado se sincroniza con el dock de música.</div>
             </div>
           </div>
         </div>
@@ -466,5 +457,3 @@ export const Profile = () => {
     </div>
   );
 };
-
-export default Profile;

@@ -51,6 +51,22 @@
   flex: 0 0 auto;
 }
 
+.pb-avatar-btn {
+  padding: 0;
+  cursor: pointer;
+  transition: transform 140ms ease, box-shadow 140ms ease;
+}
+
+.pb-avatar-btn:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 10px 22px rgba(0,0,0,0.10);
+}
+
+.pb-avatar-btn:active {
+  transform: translateY(0);
+  box-shadow: none;
+}
+
 .pb-avatar img {
   width: 100%;
   height: 100%;
@@ -68,22 +84,78 @@
   color: rgba(0,0,0,0.7);
 }
 
-.pb-pref-row {
-  display: flex;
-  justify-content: space-between;
-  gap: 14px;
-  align-items: center;
-}
-
 .pb-pref-select {
   max-width: 220px;
 }
 
-.pb-danger .pb-card-header {
-  background: rgba(220, 53, 69, 0.06);
+/* ----------------------
+   Modal edición avatar
+---------------------- */
+.pb-modal-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.55);
+  display: grid;
+  place-items: center;
+  padding: 18px;
+  z-index: 9999;
 }
 
+.pb-modal {
+  width: min(720px, 100%);
+  border-radius: 18px;
+  border: 1px solid rgba(255,255,255,0.14);
+  background: rgba(18, 22, 28, 0.92);
+  color: rgba(255,255,255,0.92);
+  box-shadow: 0 30px 80px rgba(0,0,0,0.45);
+  overflow: hidden;
+}
 
+.pb-modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  padding: 14px 16px;
+  border-bottom: 1px solid rgba(255,255,255,0.10);
+  background: rgba(255,255,255,0.04);
+  gap: 12px;
+}
+
+.pb-modal-title {
+  font-size: 18px;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+}
+
+.pb-modal-body {
+  padding: 16px;
+}
+
+.pb-modal-preview {
+  width: 110px;
+  height: 110px;
+  border-radius: 24px;
+  overflow: hidden;
+  border: 1px solid rgba(255,255,255,0.14);
+  background: rgba(255,255,255,0.06);
+  display: grid;
+  place-items: center;
+  margin-bottom: 14px;
+}
+
+.pb-modal-preview img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.pb-modal-section {
+  padding-top: 10px;
+  margin-top: 10px;
+  border-top: 1px solid rgba(255,255,255,0.10);
+}
+
+/* Night styling (la app ya usa data-pb-theme) */
 :root[data-pb-theme="night"] .pb-profile .pb-card {
   background: rgba(14, 18, 24, 0.78);
   border-color: rgba(255,255,255,0.08);
@@ -104,4 +176,96 @@
   background: rgba(255,255,255,0.06);
   border-color: rgba(255,255,255,0.10);
   color: rgba(255,255,255,0.92);
+}
+
+/* Fondo propio del Profile (día/noche) */
+.pb-profile {
+  min-height: 100vh;
+  padding-bottom: 96px; /* deja aire para el MusicDock */
+  background: radial-gradient(1200px 600px at 20% 0%, rgba(0, 0, 0, 0.04), transparent 60%),
+              radial-gradient(900px 500px at 80% 10%, rgba(0, 0, 0, 0.03), transparent 55%),
+              #f7f7f8;
+}
+
+:root[data-pb-theme="night"] .pb-profile {
+  background: radial-gradient(900px 500px at 25% 0%, rgba(110, 140, 255, 0.18), transparent 60%),
+              radial-gradient(1100px 650px at 70% 5%, rgba(0, 220, 255, 0.10), transparent 55%),
+              radial-gradient(1200px 700px at 50% 90%, rgba(255, 100, 210, 0.10), transparent 55%),
+              #070a14;
+}
+
+/* CONTRASTE: btn-outline-light en modo día (sobre fondo claro) */
+.pb-profile .btn-outline-light {
+  color: rgba(0, 0, 0, 0.78);
+  border-color: rgba(0, 0, 0, 0.22);
+  background: rgba(255, 255, 255, 0.65);
+}
+
+.pb-profile .btn-outline-light:hover {
+  background: rgba(0, 0, 0, 0.06);
+  border-color: rgba(0, 0, 0, 0.28);
+  color: rgba(0, 0, 0, 0.88);
+}
+
+.pb-profile .btn-outline-light:disabled {
+  opacity: 0.45;
+}
+
+/* En noche, mantenemos outline-light como estaba pensado */
+:root[data-pb-theme="night"] .pb-profile .btn-outline-light {
+  color: rgba(255, 255, 255, 0.92);
+  border-color: rgba(255, 255, 255, 0.22);
+  background: rgba(255, 255, 255, 0.04);
+}
+
+:root[data-pb-theme="night"] .pb-profile .btn-outline-light:hover {
+  background: rgba(255, 255, 255, 0.08);
+}
+
+/* -------------------------------------------------
+   Fondo full viewport para Profile (evita blanco)
+-------------------------------------------------- */
+body.pb-page-profile {
+  min-height: 100vh;
+  background: radial-gradient(900px 520px at 20% 0%, rgba(0, 0, 0, 0.05), transparent 60%),
+              radial-gradient(900px 520px at 80% 10%, rgba(0, 0, 0, 0.03), transparent 55%),
+              #f7f7f8;
+}
+
+:root[data-pb-theme="night"] body.pb-page-profile {
+  background: radial-gradient(900px 520px at 25% 0%, rgba(110, 140, 255, 0.18), transparent 60%),
+              radial-gradient(1100px 650px at 70% 5%, rgba(0, 220, 255, 0.10), transparent 55%),
+              radial-gradient(1200px 700px at 50% 90%, rgba(255, 100, 210, 0.10), transparent 55%),
+              #070a14;
+}
+
+/* Título/subtítulo en night (ahora mismo te queda oscuro) */
+.pb-profile .pb-subtitle {
+  color: rgba(0, 0, 0, 0.55);
+  font-size: 0.95rem;
+}
+
+:root[data-pb-theme="night"] .pb-profile h2,
+:root[data-pb-theme="night"] .pb-profile h5 {
+  color: rgba(255, 255, 255, 0.92);
+}
+
+:root[data-pb-theme="night"] .pb-profile .pb-subtitle {
+  color: rgba(255, 255, 255, 0.65);
+}
+
+/* Texto auxiliar (Formato IANA / hints) */
+.pb-help {
+  color: rgba(0, 0, 0, 0.55);
+  font-size: 0.9rem;
+}
+
+:root[data-pb-theme="night"] .pb-profile .pb-help {
+  color: rgba(255, 255, 255, 0.65);
+}
+
+/* Evita que Bootstrap "form-text/text-secondary" quede ilegible en night */
+:root[data-pb-theme="night"] .pb-profile .text-secondary,
+:root[data-pb-theme="night"] .pb-profile .form-text {
+  color: rgba(255, 255, 255, 0.65) !important;
 }

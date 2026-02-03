@@ -345,113 +345,115 @@ export const Activities = () => {
 	}
 
 	return (
-		<div className="container py-4 py-lg-5">
-			<div className="d-flex flex-column flex-lg-row justify-content-between align-items-start gap-3 mb-4">
-				<div>
-					<h1 className="h2 fw-bold mb-2">Actividades</h1>
-					<p className="text-secondary mb-0">
-						Catálogo completo. Filtra por fase, rama o busca por texto.
-					</p>
-				</div>
-
-				<div className="d-flex flex-wrap gap-2">
-					<div className="btn-group" role="group" aria-label="Filtro fase">
-						<button
-							type="button"
-							className={`btn ${phaseFilter === "all" ? "btn-primary" : "btn-outline-primary"}`}
-							onClick={() => setPhaseFilter("all")}
-						>
-							Todas
-						</button>
-						<button
-							type="button"
-							className={`btn ${phaseFilter === "day" ? "btn-primary" : "btn-outline-primary"}`}
-							onClick={() => setPhaseFilter("day")}
-						>
-							Día
-						</button>
-						<button
-							type="button"
-							className={`btn ${phaseFilter === "night" ? "btn-primary" : "btn-outline-primary"}`}
-							onClick={() => setPhaseFilter("night")}
-						>
-							Noche
-						</button>
+		<div className="pb-activities">
+			<div className="container py-4 py-lg-5">
+				<div className="d-flex flex-column flex-lg-row justify-content-between align-items-start gap-3 mb-4">
+					<div>
+						<h1 className="h2 fw-bold mb-2">Actividades</h1>
+						<p className="text-secondary mb-0">
+							Catálogo completo. Filtra por fase, rama o busca por texto.
+						</p>
 					</div>
 
-					<select
-						className="form-select"
-						style={{ width: 220 }}
-						value={branchFilter}
-						onChange={(e) => setBranchFilter(e.target.value)}
-						aria-label="Filtro rama"
-					>
-						{branches.map((b) => (
-							<option key={b} value={b}>
-								{b === "all" ? "Todas las ramas" : b}
-							</option>
-						))}
-					</select>
+					<div className="d-flex flex-wrap gap-2">
+						<div className="btn-group" role="group" aria-label="Filtro fase">
+							<button
+								type="button"
+								className={`btn ${phaseFilter === "all" ? "btn-primary" : "btn-outline-primary"}`}
+								onClick={() => setPhaseFilter("all")}
+							>
+								Todas
+							</button>
+							<button
+								type="button"
+								className={`btn ${phaseFilter === "day" ? "btn-primary" : "btn-outline-primary"}`}
+								onClick={() => setPhaseFilter("day")}
+							>
+								Día
+							</button>
+							<button
+								type="button"
+								className={`btn ${phaseFilter === "night" ? "btn-primary" : "btn-outline-primary"}`}
+								onClick={() => setPhaseFilter("night")}
+							>
+								Noche
+							</button>
+						</div>
 
-					<input
-						className="form-control"
-						style={{ width: 260 }}
-						placeholder="Buscar…"
-						value={q}
-						onChange={(e) => setQ(e.target.value)}
-					/>
-				</div>
-			</div>
+						<select
+							className="form-select"
+							style={{ width: 220 }}
+							value={branchFilter}
+							onChange={(e) => setBranchFilter(e.target.value)}
+							aria-label="Filtro rama"
+						>
+							{branches.map((b) => (
+								<option key={b} value={b}>
+									{b === "all" ? "Todas las ramas" : b}
+								</option>
+							))}
+						</select>
 
-			<div className="d-flex justify-content-between align-items-center mb-3">
-				<div className="small text-secondary">
-					Mostrando <span className="fw-semibold">{filtered.length}</span> actividades
-				</div>
-
-				<button
-					type="button"
-					className="btn btn-sm btn-outline-secondary"
-					onClick={() => {
-						setPhaseFilter("all");
-						setBranchFilter("all");
-						setQ("");
-					}}
-				>
-					Limpiar filtros
-				</button>
-			</div>
-
-			<div className="row g-4">
-				{filtered.map((a) => (
-					<div className="col-12 col-md-6 col-lg-4" key={a.id}>
-						<ActivityCard
-							activity={{
-								...a,
-								reason: a.reason ? `${a._phaseLabel}: ${a.reason}` : `${a._phaseLabel}`,
-							}}
-							completed={completedAll.has(a.id)}
-							onStart={onStart}
-							onComplete={() => { }}
-							showCompleteButton={false}
+						<input
+							className="form-control"
+							style={{ width: 260 }}
+							placeholder="Buscar…"
+							value={q}
+							onChange={(e) => setQ(e.target.value)}
 						/>
 					</div>
-				))}
-			</div>
+				</div>
 
-			{activeActivity && (
-				<ActivityModal
-					activity={activeActivity}
-					onClose={() => setActiveActivity(null)}
-					onComplete={async () => {
-						await handleComplete(activeActivity);
-						setActiveActivity(null);
-					}}
-					onSaved={async () => {
-						await handleComplete(activeActivity);
-						setActiveActivity(null);
-					}}
-				/>
-			)}
+				<div className="d-flex justify-content-between align-items-center mb-3">
+					<div className="small text-secondary">
+						Mostrando <span className="fw-semibold">{filtered.length}</span> actividades
+					</div>
+
+					<button
+						type="button"
+						className="btn btn-sm btn-outline-secondary"
+						onClick={() => {
+							setPhaseFilter("all");
+							setBranchFilter("all");
+							setQ("");
+						}}
+					>
+						Limpiar filtros
+					</button>
+				</div>
+
+				<div className="row g-4">
+					{filtered.map((a) => (
+						<div className="col-12 col-md-6 col-lg-4" key={a.id}>
+							<ActivityCard
+								activity={{
+									...a,
+									reason: a.reason ? `${a._phaseLabel}: ${a.reason}` : `${a._phaseLabel}`,
+								}}
+								completed={completedAll.has(a.id)}
+								onStart={onStart}
+								onComplete={() => { }}
+								showCompleteButton={false}
+							/>
+						</div>
+					))}
+				</div>
+
+				{activeActivity && (
+					<ActivityModal
+						activity={activeActivity}
+						onClose={() => setActiveActivity(null)}
+						onComplete={async () => {
+							await handleComplete(activeActivity);
+							setActiveActivity(null);
+						}}
+						onSaved={async () => {
+							await handleComplete(activeActivity);
+							setActiveActivity(null);
+						}}
+					/>
+				)}
+			</div>
 		</div>
 	);
 };

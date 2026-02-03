@@ -260,14 +260,14 @@ function LineChart({
               )}
 
 
-                <text
-                  className={`pb-linechart-xlabel ${dense ? "is-dense" : ""}`}
-                  x={p.x}
-                  y={H - 18}
-                  textAnchor="middle"
-                >
-                  {xLabels?.[i] ?? ""}
-                </text>
+              <text
+                className={`pb-linechart-xlabel ${dense ? "is-dense" : ""}`}
+                x={p.x}
+                y={H - 18}
+                textAnchor="middle"
+              >
+                {xLabels?.[i] ?? ""}
+              </text>
 
             </g>
           );
@@ -373,9 +373,22 @@ export const Mirror = () => {
     return p === "day" || p === "night" ? p : null;
   }, []);
 
-  const hour = new Date().getHours();
-  const autoNight = hour >= 19 || hour < 6;
-  const isNight = phaseParam ? phaseParam === "night" : autoNight;
+  const getPhaseFromRoot = () =>
+    document?.documentElement?.getAttribute("data-pb-phase") || "day";
+
+  const [phaseLive, setPhaseLive] = useState(() => getPhaseFromRoot());
+
+  useEffect(() => {
+    const handler = (e) => {
+      const next = e?.detail?.phase || getPhaseFromRoot();
+      setPhaseLive(next);
+    };
+    window.addEventListener("pb:phase-updated", handler);
+    return () => window.removeEventListener("pb:phase-updated", handler);
+  }, []);
+
+  const isNight = phaseParam ? phaseParam === "night" : phaseLive === "night";
+
 
   // Semana máxima: semana actual (L-D). No se puede ir al futuro.
   const currentWeekStartISO = useMemo(() => weekRangeLD(new Date()).start, []);

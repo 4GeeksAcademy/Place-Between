@@ -44,6 +44,9 @@ const detectPhase = () => {
     return h >= 19 || h < 6 ? "night" : "day";
 };
 
+const getPhaseFromRoot = () =>
+    document?.documentElement?.getAttribute("data-pb-phase") || "day";
+
 // XP thresholds (ajústalos cuando quieras)
 const XP_STEPS = [
     { lv: 1, xp: 0, name: "Despertar" },
@@ -69,7 +72,18 @@ const freqLabel = (v) => (v === "monthly" ? "Mensual" : v === "weekly" ? "Semana
 // ---------- Component ----------
 export default function Goals() {
     const BACKEND_URL = useMemo(() => getBackendUrl(), []);
-    const [phase, setPhase] = useState(detectPhase());
+    const [phase, setPhase] = useState(getPhaseFromRoot());
+
+    useEffect(() => {
+        const handler = (e) => {
+            const next = e?.detail?.phase || getPhaseFromRoot();
+            setPhase(next);
+        };
+        window.addEventListener("pb:phase-updated", handler);
+        return () => window.removeEventListener("pb:phase-updated", handler);
+    }, []);
+
+    const isNight = phase === "night";
 
     const [tab, setTab] = useState("mine"); // mine | presets
     const [loading, setLoading] = useState(false);
@@ -321,19 +335,6 @@ export default function Goals() {
                     </div>
                 </div>
 
-                <div className="pb-goals-hero-actions">
-                    <button
-                        className="btn btn-sm btn-outline-light"
-                        onClick={() => setPhase((p) => (p === "night" ? "day" : "night"))}
-                        type="button"
-                    >
-                        Cambiar a {phase === "night" ? "Día" : "Noche"}
-                    </button>
-
-                    <button className="btn btn-sm btn-outline-light" onClick={refresh} type="button" disabled={loading}>
-                        {loading ? "Actualizando..." : "Actualizar"}
-                    </button>
-                </div>
             </div>
 
             {/* XP / Roadmap */}

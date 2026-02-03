@@ -28,7 +28,16 @@ const getDateKey = () => {
     return `${yyyy}-${mm}-${dd}`;
 };
 
+const getPhaseFromRoot = () => {
+    const p = document?.documentElement?.getAttribute("data-pb-phase");
+    if (p === "night") return "Noche";
+    if (p === "day") return "Día";
+    return null;
+};
+
 const getPhaseByHour = () => {
+    const root = getPhaseFromRoot();
+    if (root) return root;
     const h = new Date().getHours();
     return h >= 19 || h < 6 ? "Noche" : "Día";
 };
@@ -149,6 +158,19 @@ export const Today = () => {
         const forced = getForcedPhase(location.search);
         const nextPhase = forced || getPhaseByHour();
         setPhase(nextPhase);
+    }, [location.search]);
+
+    // 1.1) Escuchar cambios globales de fase (AppLayout)
+    useEffect(() => {
+        const handler = (e) => {
+            const forced = getForcedPhase(location.search);
+            if (forced) return;
+
+            const next = e?.detail?.phase === "night" ? "Noche" : "Día";
+            setPhase(next);
+        };
+        window.addEventListener("pb:phase-updated", handler);
+        return () => window.removeEventListener("pb:phase-updated", handler);
     }, [location.search]);
 
     // 2) Detectar cambios de usuario (login/logout) y rehidratar
@@ -416,10 +438,6 @@ export const Today = () => {
                                 : "Cierre breve: emoción + regulación. Luego, Espejo."}
                         </p>
 
-                        <div className="small pb-sub mt-2">
-                            Test fase: <span className="pb-mono">/today?phase=day</span> o{" "}
-                            <span className="pb-mono">/today?phase=night</span>
-                        </div>
                     </div>
 
                     <div className="pb-progress card shadow-sm">

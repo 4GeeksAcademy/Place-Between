@@ -1,19 +1,21 @@
 /* Place Between — Activities (cards/modals shared by Today/Activities) */
 
-.pb-progress {
-  border-radius: 18px;
-  border: 1px solid rgba(0, 0, 0, 0.08);
-  min-width: 320px;
+.pb-activities {
+  min-height: 100vh;
+  padding-bottom: 96px;
+  background: radial-gradient(900px 520px at 20% 0%, rgba(0, 0, 0, 0.05), transparent 60%),
+              radial-gradient(900px 520px at 80% 10%, rgba(0, 0, 0, 0.03), transparent 55%),
+              #f7f7f8;
 }
 
-.pb-night {
+.pb-progress,
+.pb-night,
+.pb-activity {
   border-radius: 18px;
   border: 1px solid rgba(0, 0, 0, 0.08);
 }
 
 .pb-activity {
-  border-radius: 18px;
-  border: 1px solid rgba(0, 0, 0, 0.08);
   overflow: hidden;
 }
 
@@ -37,4 +39,42 @@
   height: 100%;
   object-fit: cover;
   display: block;
+}
+
+/* -----------------------
+   Night mode
+----------------------- */
+:root[data-pb-theme="night"] .pb-activities {
+  background: radial-gradient(900px 520px at 25% 0%, rgba(110, 140, 255, 0.18), transparent 60%),
+              radial-gradient(1100px 650px at 70% 5%, rgba(0, 220, 255, 0.10), transparent 55%),
+              radial-gradient(1200px 700px at 50% 90%, rgba(255, 100, 210, 0.10), transparent 55%),
+              #070a14;
+  color: rgba(255, 255, 255, 0.92);
+}
+
+:root[data-pb-theme="night"] .pb-activities .card,
+:root[data-pb-theme="night"] .pb-activities .pb-activity {
+  background: rgba(14, 18, 24, 0.78);
+  border-color: rgba(255, 255, 255, 0.08);
+}
+
+:root[data-pb-theme="night"] .pb-activities .text-secondary,
+:root[data-pb-theme="night"] .pb-activities .form-text {
+  color: rgba(255, 255, 255, 0.65) !important;
+}
+
+:root[data-pb-theme="night"] .pb-activities .form-control,
+:root[data-pb-theme="night"] .pb-activities .form-select {
+  background: rgba(255, 255, 255, 0.06);
+  border-color: rgba(255, 255, 255, 0.10);
+  color: rgba(255, 255, 255, 0.92);
+}
+
+:root[data-pb-theme="night"] .pb-activities .btn-outline-primary {
+  color: rgba(255, 255, 255, 0.92);
+  border-color: rgba(255, 255, 255, 0.20);
+}
+
+:root[data-pb-theme="night"] .pb-activities .btn-outline-primary:hover {
+  background: rgba(255, 255, 255, 0.08);
 }
