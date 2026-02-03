@@ -79,10 +79,6 @@ class User(db.Model):
     email_verified_at: Mapped[datetime | None] = mapped_column(
         DateTime, nullable=True)
 
-    emails_enabled: Mapped[bool] = mapped_column(
-        Boolean, nullable=True, default=True
-    )
-
     created_at: Mapped[datetime] = mapped_column(
         DateTime, nullable=False, default=datetime.utcnow)
     last_login_at: Mapped[datetime | None] = mapped_column(
@@ -93,8 +89,6 @@ class User(db.Model):
     welcome_email_sent_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
 
     emails_enabled: Mapped[bool] = mapped_column(Boolean, nullable=False, default=True)
-    welcome_email_sent_at: Mapped[datetime |
-                                  None] = mapped_column(DateTime, nullable=True)
 
     # Relationships
     sessions: Mapped[list["DailySession"]] = relationship(
