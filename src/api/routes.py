@@ -1,10 +1,13 @@
-import os, json
+import os
+import json
+import re
+import unicodedata
 from collections import defaultdict
 from datetime import datetime, timedelta, timezone, date
 
 from flask import request, jsonify, Blueprint
 from flask_cors import CORS
-from flask_jwt_extended import create_access_token, jwt_required, get_jwt_identity,decode_token
+from flask_jwt_extended import create_access_token, jwt_required, get_jwt_identity, decode_token
 from werkzeug.security import generate_password_hash
 
 from api.models import (
@@ -20,7 +23,7 @@ from api.models import (
     ActivityType,
     Goal,
     GoalCategory,
-    GoalTemplate, 
+    GoalTemplate,
     GoalProgress,
     GoalSize,
     DailySessionGoal,
@@ -32,10 +35,10 @@ from flask_cors import CORS
 from datetime import time as dtime
 from datetime import datetime, timedelta, timezone
 from flask_jwt_extended import create_access_token, jwt_required, get_jwt_identity
-from api.service_loops.welcome_user import send_welcome_transactional , LoopsError
+from api.service_loops.welcome_user import send_welcome_transactional, LoopsError
 from api.service_loops.reset_password import send_password_reset
-from api.service_loops.verify_email import send_verify_email , LoopsError
-from api.service_loops.inactive_reminder import send_inactive_reminder , LoopsError
+from api.service_loops.verify_email import send_verify_email, LoopsError
+from api.service_loops.inactive_reminder import send_inactive_reminder, LoopsError
 from zoneinfo import ZoneInfo
 import os
 from werkzeug.security import generate_password_hash
@@ -65,6 +68,7 @@ def _as_utc_aware(dt):
         return dt.replace(tzinfo=timezone.utc)
     return dt.astimezone(timezone.utc)
 
+
 def _parse_hhmm(s: str):
     """
     "09:00" -> datetime.time(9,0)
@@ -76,6 +80,7 @@ def _parse_hhmm(s: str):
         return dtime(int(hh), int(mm))
     except Exception:
         return None
+
 
 def _normalize_days_of_week(s: str):
     """
@@ -91,7 +96,7 @@ def _normalize_days_of_week(s: str):
     if s == "daily":
         return "daily"
 
-    valid = {"mon","tue","wed","thu","fri","sat","sun"}
+    valid = {"mon", "tue", "wed", "thu", "fri", "sat", "sun"}
     parts = [p.strip() for p in s.split(",") if p.strip()]
     if not parts:
         return "daily"
@@ -106,6 +111,7 @@ def _normalize_days_of_week(s: str):
             seen.add(p)
             out.append(p)
     return ",".join(out)
+
 
 def _daterange_days(start_date: date, end_date: date):
     days = []
@@ -430,8 +436,8 @@ def register():
         username=username,
         timezone=tz_str,
         created_at=datetime.now(timezone.utc),
-        is_email_verified=False, 
-        email_verified_at=None,  
+        is_email_verified=False,
+        email_verified_at=None,
     )
     user.set_password(password)
 
@@ -496,30 +502,28 @@ def verify_email():
         return jsonify({"msg": "Falta token"}), 400
 
     try:
-        decoded = decode_token(token)  
+        decoded = decode_token(token)
 
         if decoded.get("type") != "verify_email":
             return jsonify({"msg": "Token inválido (tipo incorrecto)"}), 400
 
-        user_id = decoded.get("sub") 
+        user_id = decoded.get("sub")
         user = User.query.get(int(user_id)) if user_id else None
         if not user:
             return jsonify({"msg": "Usuario no existe"}), 404
 
-        
         if user.is_email_verified:
             return jsonify({"msg": "Email ya estaba verificado"}), 200
 
-       
         user.is_email_verified = True
         user.email_verified_at = datetime.now(timezone.utc)
         db.session.commit()
 
-        
         try:
             transactional_id = os.getenv("LOOPS_WELCOME_TRANSACTIONAL_ID")
             if not transactional_id:
-                raise LoopsError("Falta LOOPS_WELCOME_TRANSACTIONAL_ID en el .env")
+                raise LoopsError(
+                    "Falta LOOPS_WELCOME_TRANSACTIONAL_ID en el .env")
 
             send_welcome_transactional(
                 email=user.email,
@@ -539,6 +543,7 @@ def verify_email():
 # USERS EDIT
 # --------------------------
 
+
 @api.route("/users/user", methods=["GET"])
 @jwt_required()
 def get_current_user():
@@ -556,7 +561,8 @@ def get_current_user():
         "timezone": user.timezone,
     }), 200
 
-#### PATCH EDITA CAMPOS ESPECIFICOS 
+# PATCH EDITA CAMPOS ESPECIFICOS
+
 
 @api.route("/users/user", methods=["PATCH"])
 @jwt_required()
@@ -579,13 +585,14 @@ def update_user():
 
     return jsonify({"success": True}), 200
 
-#--------------------------
+# --------------------------
 # PASSWORD RESET
 # --------------------------
 
+
 @api.route("/auth/forgot-password", methods=["POST"])
 def forgot_password():
-    
+
     body = request.get_json(silent=True) or {}
     email = (body.get("email") or "").strip().lower()
 
@@ -598,12 +605,12 @@ def forgot_password():
         return jsonify({"msg": "Si el email existe, recibirás un enlace para restablecer tu contraseña."}), 404
 
     token = create_access_token(
-    identity=str(user.id),
-    expires_delta=timedelta(hours=1)
-)
-    
+        identity=str(user.id),
+        expires_delta=timedelta(hours=1)
+    )
+
     url_reset = os.getenv('VITE_FRONTEND_URL') + "auth/reset?token=" + token
-    
+
     send_password_reset(email, url_reset)
 
     return jsonify({"msg": "Si el email existe, recibirás un enlace para restablecer tu contraseña."}), 200
@@ -612,7 +619,7 @@ def forgot_password():
 @api.route("/auth/reset-password", methods=["POST"])
 @jwt_required()
 def reset_password():
-    
+
     body = request.get_json(silent=True) or {}
     password = body.get("password")
 
@@ -1117,6 +1124,8 @@ def dev_seed_activities_bulk():
     return jsonify({"msg": "Seed bulk completado", "created": created, "updated": updated, "skipped": skipped}), 200
 
 # Seed desde presets en JSON (sin terminal)
+
+
 @api.route("/dev/seed/activities/presets", methods=["POST"])
 def dev_seed_activities_presets():
     if not dev_only():
@@ -1124,7 +1133,8 @@ def dev_seed_activities_presets():
 
     # 1) Lee el JSON del front (fuente única)
     base_dir = os.path.dirname(os.path.realpath(__file__))  # .../src/api
-    seed_path = os.path.join(base_dir, "..", "front", "data", "activities.seed.json")
+    seed_path = os.path.join(base_dir, "..", "front",
+                             "data", "activities.seed.json")
 
     try:
         with open(seed_path, "r", encoding="utf-8") as f:
@@ -1135,7 +1145,7 @@ def dev_seed_activities_presets():
     day_items = catalog.get("day") or []
     night_items = catalog.get("night") or []
     if not isinstance(day_items, list) or not isinstance(night_items, list):
-        return jsonify({"msg": "Formato inválido: se espera {day:[], night:[]}" }), 400
+        return jsonify({"msg": "Formato inválido: se espera {day:[], night:[]}"}), 400
 
     items = []
     items.extend(day_items)
@@ -1213,7 +1223,6 @@ def dev_seed_activities_presets():
         "updated": updated,
         "skipped": skipped
     }), 200
-
 
 
 # Bulk seed de plantillas de objetivos
@@ -1315,7 +1324,8 @@ def dev_seed_goal_templates_presets():
         return jsonify({"msg": "Not found"}), 404
 
     base_dir = os.path.dirname(os.path.realpath(__file__))  # .../src/api
-    seed_path = os.path.join(base_dir, "..", "front", "data", "goalTemplates.seed.json")
+    seed_path = os.path.join(base_dir, "..", "front",
+                             "data", "goalTemplates.seed.json")
 
     try:
         with open(seed_path, "r", encoding="utf-8") as f:
@@ -1412,7 +1422,6 @@ def dev_seed_goal_templates_presets():
     }), 200
 
 
-
 @api.route("/dev/reset/today", methods=["POST"])
 @jwt_required()
 def dev_reset_today():
@@ -1457,17 +1466,20 @@ def dev_deactivate_activity():
 
     return jsonify({"msg": "Actividad desactivada", "external_id": external_id}), 200
 
-#-------------------------
-#REMINDERS
-#-------------------------
+# -------------------------
+# REMINDERS
+# -------------------------
+
 
 @api.route("/reminders", methods=["GET"])
 @jwt_required()
 def list_reminders():
     user_id = int(get_jwt_identity())
 
-    reminders = Reminder.query.filter_by(user_id=user_id).order_by(Reminder.id.desc()).all()
+    reminders = Reminder.query.filter_by(
+        user_id=user_id).order_by(Reminder.id.desc()).all()
     return jsonify([r.serialize() for r in reminders]), 200
+
 
 @api.route("/reminders", methods=["POST"])
 @jwt_required()
@@ -1535,6 +1547,7 @@ def create_reminder():
 
     return jsonify({"msg": "Reminder creado", "reminder": r.serialize()}), 201
 
+
 @api.route("/reminders/<int:reminder_id>", methods=["PUT"])
 @jwt_required()
 def update_reminder(reminder_id):
@@ -1545,31 +1558,29 @@ def update_reminder(reminder_id):
 
     body = request.get_json(silent=True) or {}
 
-   
     if "is_active" in body:
         r.is_active = bool(body.get("is_active"))
 
     if "days_of_week" in body:
-        days_of_week = _normalize_days_of_week(body.get("days_of_week") or "daily")
+        days_of_week = _normalize_days_of_week(
+            body.get("days_of_week") or "daily")
         if days_of_week is None:
             return jsonify({"msg": "days_of_week inválido. Usa 'daily' o 'mon,tue,wed'"}), 400
         r.days_of_week = days_of_week
 
-    
     if "mode" in body:
         mode_raw = (body.get("mode") or "").strip()
         if mode_raw not in [m.value for m in ReminderMode]:
             return jsonify({"msg": "mode inválido"}), 400
         r.mode = ReminderMode(mode_raw)
 
-    
     if r.mode == ReminderMode.fixed:
         if "local_time" in body:
             lt = _parse_hhmm(body.get("local_time") or "")
             if not lt:
                 return jsonify({"msg": "local_time inválido. Ej: '09:00'"}), 400
             r.local_time = lt
-        
+
         r.inactive_after_minutes = None
 
     if r.mode == ReminderMode.inactivity:
@@ -1581,11 +1592,12 @@ def update_reminder(reminder_id):
             if mins <= 0:
                 return jsonify({"msg": "inactive_after_minutes debe ser > 0"}), 400
             r.inactive_after_minutes = mins
-        
+
         r.local_time = None
 
     db.session.commit()
     return jsonify({"msg": "Reminder actualizado", "reminder": r.serialize()}), 200
+
 
 @api.route("/reminders/<int:reminder_id>", methods=["DELETE"])
 @jwt_required()
@@ -1604,6 +1616,8 @@ def delete_reminder(reminder_id):
 # -------------------------
 # ENVIAR REMINDERS (INACTIVOS)
 # -------------------------
+
+
 @api.route("/tasks/send-reminders", methods=["POST"])
 def task_send_reminders():
     # Seguridad simple: solo tu cron/servicio interno debe llamar esto
@@ -1656,7 +1670,6 @@ def task_send_reminders():
             skipped += 1
             continue
 
-    
         last_sent = _as_utc_aware(r.last_sent_at)
 
         if last_sent and (now_utc - last_sent) < timedelta(hours=24):
@@ -1751,7 +1764,8 @@ def _get_or_create_day_session(user_id: int, session_date: date):
 @jwt_required()
 def list_goals():
     user_id = int(get_jwt_identity())
-    goals = Goal.query.filter_by(user_id=user_id).order_by(Goal.created_at.desc()).all()
+    goals = Goal.query.filter_by(user_id=user_id).order_by(
+        Goal.created_at.desc()).all()
     return jsonify([g.serialize() for g in goals]), 200
 
 
@@ -1977,7 +1991,8 @@ def complete_goal(goal_id):
         if daily_session is None or daily_session.user_id != user_id:
             return jsonify({"msg": "daily_session not found"}), 404
     else:
-        daily_session = _get_or_create_day_session(user_id=user_id, session_date=today)
+        daily_session = _get_or_create_day_session(
+            user_id=user_id, session_date=today)
 
     # Conecta goal con sesión si no está ya
     link = DailySessionGoal.query.filter_by(
@@ -1985,7 +2000,8 @@ def complete_goal(goal_id):
         goal_id=goal.id
     ).first()
     if link is None:
-        link = DailySessionGoal(daily_session_id=daily_session.id, goal_id=goal.id)
+        link = DailySessionGoal(
+            daily_session_id=daily_session.id, goal_id=goal.id)
         db.session.add(link)
 
     did_award = False
@@ -1994,7 +2010,8 @@ def complete_goal(goal_id):
     # Evitar doble recompensa: si ya tiene completed_at, no se vuelve a sumar
     if goal.completed_at is None:
         goal.completed_at = datetime.now(timezone.utc)
-        daily_session.points_earned = int(daily_session.points_earned or 0) + reward
+        daily_session.points_earned = int(
+            daily_session.points_earned or 0) + reward
         did_award = True
 
     db.session.commit()
@@ -2007,6 +2024,8 @@ def complete_goal(goal_id):
 
 
 # GET EMOTION MUSIC AND DEFAULT TRACK
+
+DEFAULT_TRACK = "https://soundcloud.com/sant_iagoo/sets/default-track"
 
 EMOTION_PLAYLISTS = {
     "alegria": {
@@ -2021,52 +2040,52 @@ EMOTION_PLAYLISTS = {
         "day": "https://soundcloud.com/sant_iagoo/sets/descarga_controlada",
         "night": "https://soundcloud.com/sant_iagoo/sets/contencion"
     },
-    "miedo/ansiedad": {
-        "day": "https://soundcloud.com/sant_iagoo/sets/descarga_controlada",
-        "night": "https://soundcloud.com/sant_iagoo/sets/contencion"
-    }, 
     "ansiedad": {
         "day": "https://soundcloud.com/sant_iagoo/sets/descarga_controlada",
         "night": "https://soundcloud.com/sant_iagoo/sets/contencion"
-    }, 
+    },
     "miedo": {
         "day": "https://soundcloud.com/sant_iagoo/sets/descarga_controlada",
         "night": "https://soundcloud.com/sant_iagoo/sets/contencion"
-    }, 
+    },
     "default": {
-        "day": "https://soundcloud.com/sant_iagoo/sets/default-track",
-        "night": "https://soundcloud.com/sant_iagoo/sets/default-track"
+        "day": DEFAULT_TRACK,
+        "night": DEFAULT_TRACK
     }
 }
 
 
-@api.route("/music/emotion", methods=["GET"])
-@jwt_required()
-def get_background_music():
-    user_id = get_jwt_identity()
+def normalize_emotion(name: str) -> str:
+    if not name:
+        return "default"
 
-    today = date.today()
-    session = (
-        DailySession.query
-        .filter_by(user_id=user_id, session_date=today, is_active=True)
-        .order_by(DailySession.created_at.desc())
-        .first()
+    # lower + quitar acentos
+    s = name.lower()
+    s = "".join(
+        c for c in unicodedata.normalize("NFD", s)
+        if unicodedata.category(c) != "Mn"
     )
 
-    if session:
-        phase = "day" if session.session_type == SessionType.day else "night"
-    else:
-        hour = datetime.now().hour
-        phase = "night" if hour >= 19 or hour < 6 else "day"
+    # dividir cosas tipo "miedo/ansiedad"
+    s = re.split(r"[\/,;|]", s)[0].strip()
 
-    checkin = None
-    if session:
-        checkin = (
-            EmotionCheckin.query
-            .filter_by(daily_session_id=session.id)
-            .order_by(EmotionCheckin.created_at.desc())
-            .first()
-        )
+    return s
+
+
+@api.route("/music/current", methods=["GET"])
+@jwt_required()
+def get_current_music():
+    user_id = get_jwt_identity()
+    phase = request.args.get("phase", "day")
+    phase = phase if phase in ("day", "night") else "day"
+
+    checkin = (
+        EmotionCheckin.query
+        .join(DailySession, EmotionCheckin.daily_session_id == DailySession.id)
+        .filter(DailySession.user_id == user_id)
+        .order_by(EmotionCheckin.created_at.desc())
+        .first()
+    )
 
     if not checkin or not checkin.emotion:
         return jsonify({
@@ -2075,25 +2094,11 @@ def get_background_music():
             "url_music": EMOTION_PLAYLISTS["default"][phase]
         }), 200
 
-    emotion_name = checkin.emotion.name.lower()
-    url_music = (
-        EMOTION_PLAYLISTS
-        .get(emotion_name, EMOTION_PLAYLISTS["default"])
-        .get(phase)
-    )
+    emotion_key = normalize_emotion(checkin.emotion.name)
+    playlist = EMOTION_PLAYLISTS.get(emotion_key, EMOTION_PLAYLISTS["default"])
 
     return jsonify({
-        "emotion": emotion_name,
+        "emotion": emotion_key,
         "session_type": phase,
-        "url_music": url_music
+        "url_music": playlist[phase]
     }), 200
-
-
-DEFAULT_TRACK = "https://soundcloud.com/sant_iagoo/sets/default-track"
-
-@api.route("/music/default", methods=["GET"])
-def get_default_music():
-    return jsonify({
-        "url_music": DEFAULT_TRACK
-    }), 200
-

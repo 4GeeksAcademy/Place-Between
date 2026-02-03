@@ -1,8 +1,8 @@
 import React, { useEffect, useMemo, useState } from "react";
 
-const getBackendUrl = () => (import.meta.env.VITE_BACKEND_URL || "").replace(/\/$/, "");
+const getBackendUrl = () =>
+    (import.meta.env.VITE_BACKEND_URL || "").replace(/\/$/, "");
 
-// Normaliza: lower + sin tildes + trim
 const normalize = (s) =>
     String(s || "")
         .trim()
@@ -10,28 +10,18 @@ const normalize = (s) =>
         .normalize("NFD")
         .replace(/[\u0300-\u036f]/g, "");
 
-// MVP: 4 ramas base (permitimos variantes mínimas)
 const ALLOWED_EMOTION_NAMES = new Set(["alegria", "tristeza", "ira", "miedo"]);
 
-/**
- * EmotionCheckinRunner
- * - Carga emociones públicas (/api/emotions)
- * - Guarda check-in autenticado (/api/emotions/checkin)
- * - Tras guardar OK, muestra feedback corto (fade) y luego dispara onSaved()
- *
- * Props:
- * - onSaved(payload): el contenedor (Today/Activities) completará la actividad y cerrará el modal
- */
 export const EmotionCheckinRunner = ({ onSaved }) => {
     const BACKEND_URL = getBackendUrl();
-    const token = localStorage.getItem("pb_token"); // necesario SOLO para guardar
+    const token = localStorage.getItem("pb_token");
 
     const [emotions, setEmotions] = useState([]);
     const [loading, setLoading] = useState(true);
     const [err, setErr] = useState(null);
 
     const [emotionId, setEmotionId] = useState("");
-    const [intensity, setIntensity] = useState(5); // 1..10
+    const [intensity, setIntensity] = useState(5);
     const [note, setNote] = useState("");
 
     const [saving, setSaving] = useState(false);
@@ -45,14 +35,16 @@ export const EmotionCheckinRunner = ({ onSaved }) => {
 
                 if (!BACKEND_URL) throw new Error("VITE_BACKEND_URL no está configurado.");
 
-                // GET /api/emotions es público
                 const res = await fetch(`${BACKEND_URL}/api/emotions`);
                 const data = await res.json().catch(() => null);
 
                 if (!res.ok) throw new Error(data?.msg || "Error cargando emociones");
-                if (!Array.isArray(data)) throw new Error("Respuesta inválida del backend (no es lista).");
+                if (!Array.isArray(data))
+                    throw new Error("Respuesta inválida del backend (no es lista).");
 
-                const filtered = data.filter((e) => ALLOWED_EMOTION_NAMES.has(normalize(e.name)));
+                const filtered = data.filter((e) =>
+                    ALLOWED_EMOTION_NAMES.has(normalize(e.name))
+                );
 
                 if (filtered.length === 0) {
                     throw new Error("No hay emociones válidas en DB. Crea: Alegría, Tristeza, Ira y Miedo.");
@@ -77,7 +69,6 @@ export const EmotionCheckinRunner = ({ onSaved }) => {
 
     const save = async () => {
         try {
-            // Evita doble submit (por doble click o por latencia)
             if (saving || saved) return;
 
             setSaving(true);
@@ -103,10 +94,10 @@ export const EmotionCheckinRunner = ({ onSaved }) => {
             const data = await res.json().catch(() => ({}));
             if (!res.ok) throw new Error(data?.msg || "No se pudo guardar el check-in");
 
-            // 1) Feedback visual breve (suaviza la sensación de “cierre en seco”)
+            window.dispatchEvent(new Event("pb:emotion-updated"));
+
             setSaved(true);
 
-            // 2) Dispara onSaved tras un delay corto (el contenedor completará + cerrará modal)
             window.setTimeout(() => {
                 onSaved?.({
                     type: "emotion_checkin",
@@ -118,8 +109,6 @@ export const EmotionCheckinRunner = ({ onSaved }) => {
         } catch (e) {
             setErr(e?.message || "Error guardando check-in");
         } finally {
-            // OJO: aunque hagamos timeout, no necesitamos mantener "saving" true;
-            // el estado "saved" ya bloquea re-submit y da feedback.
             setSaving(false);
         }
     };

@@ -3,3 +3,74 @@
 .pb-navbar {
   backdrop-filter: blur(8px);
 }
+
+/* MusicDock flotante */
+.pb-music-dock {
+  position: fixed;
+  right: 16px;
+  bottom: 16px;
+  z-index: 1050;
+  background: rgba(255, 255, 255, 0.92);
+  backdrop-filter: blur(8px);
+  border: 1px solid rgba(0,0,0,0.08);
+  border-radius: 16px;
+  padding: 10px;
+  box-shadow: 0 10px 30px rgba(0,0,0,0.12);
+  max-width: 320px;
+}
+
+.pb-music-dock-row {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.pb-music-pill {
+  white-space: nowrap;
+}
+
+.pb-music-toggle {
+  width: 48px;
+}
+
+.pb-music-hint {
+  margin-top: 6px;
+  max-width: 300px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.pb-music-menu {
+  margin-top: 8px;
+  border: 1px solid rgba(0,0,0,0.08);
+  border-radius: 12px;
+  background: #fff;
+  overflow: hidden;
+}
+
+.pb-music-item {
+  width: 100%;
+  text-align: left;
+  padding: 10px 12px;
+  background: transparent;
+  border: 0;
+  cursor: pointer;
+}
+
+.pb-music-item:hover {
+  background: rgba(0,0,0,0.04);
+}
+
+.pb-music-item-danger {
+  color: #b42318;
+}
+
+.pb-music-sep {
+  height: 1px;
+  background: rgba(0,0,0,0.08);
+}
+
+.pb-music-caret {
+  opacity: 0.7;
+}
