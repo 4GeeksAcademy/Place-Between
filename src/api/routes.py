@@ -12,6 +12,7 @@ from flask_jwt_extended import create_access_token, jwt_required, get_jwt_identi
 from zoneinfo import ZoneInfo
 from werkzeug.security import generate_password_hash
 from werkzeug.utils import secure_filename
+from flask import request, jsonify, render_template
 
 from datetime import time as dtime
 from datetime import datetime, timedelta, timezone
@@ -446,8 +447,8 @@ def register():
         username=username,
         timezone=tz_str,
         created_at=datetime.now(timezone.utc),
-        is_email_verified=False,
-        email_verified_at=None,
+        is_email_verified=False, 
+        email_verified_at=None,  
     )
     user.set_password(password)
 
@@ -465,8 +466,8 @@ def register():
             additional_claims={"type": "verify_email"}
         )
 
-        frontend_base = (os.getenv("VITE_FRONTEND_URL") or "").rstrip("/")
-        verify_url = f"{frontend_base}/verify-email?token={verify_token}"
+        frontend_base = (os.getenv("VITE_BACKEND_URL") or "").rstrip("/")
+        verify_url = f"{frontend_base}/api/verify-email?token={verify_token}"
 
         send_verify_email(
             email=user.email,
@@ -508,46 +509,61 @@ def login():
 @api.route("/verify-email", methods=["GET"])
 def verify_email():
     token = (request.args.get("token") or "").strip()
+
     if not token:
-        return jsonify({"msg": "Falta token"}), 400
+        return render_template(
+            "verify_email.html",
+            ok=False,
+            title="Verificación de email",
+            heading="Enlace inválido",
+            message="El enlace de verificación no es válido o está incompleto."
+        ), 400
 
     try:
         decoded = decode_token(token)
 
         if decoded.get("type") != "verify_email":
-            return jsonify({"msg": "Token inválido (tipo incorrecto)"}), 400
+            raise Exception("Tipo de token incorrecto")
 
         user_id = decoded.get("sub")
         user = User.query.get(int(user_id)) if user_id else None
         if not user:
-            return jsonify({"msg": "Usuario no existe"}), 404
+            raise Exception("Usuario no encontrado")
 
-        if user.is_email_verified:
-            return jsonify({"msg": "Email ya estaba verificado"}), 200
+        if not user.is_email_verified:
+            user.is_email_verified = True
+            user.email_verified_at = datetime.now(timezone.utc)
+            db.session.commit()
 
-        user.is_email_verified = True
-        user.email_verified_at = datetime.now(timezone.utc)
-        db.session.commit()
+            # email de bienvenida (opcional)
+            try:
+                transactional_id = os.getenv("LOOPS_WELCOME_TRANSACTIONAL_ID")
+                if transactional_id:
+                    send_welcome_transactional(
+                        email=user.email,
+                        transactional_id=transactional_id,
+                        data=user.username.capitalize(),
+                    )
+            except Exception as e:
+                print("Error Loops welcome:", repr(e))
 
-        try:
-            transactional_id = os.getenv("LOOPS_WELCOME_TRANSACTIONAL_ID")
-            if not transactional_id:
-                raise LoopsError(
-                    "Falta LOOPS_WELCOME_TRANSACTIONAL_ID en el .env")
-
-            send_welcome_transactional(
-                email=user.email,
-                transactional_id=transactional_id,
-                data=user.username.capitalize(),
-            )
-        except Exception as e:
-            print("Error Loops welcome (debug):", repr(e))
-
-        return jsonify({"msg": "Email verificado con éxito"}), 200
+        return render_template(
+            "verify_email.html",
+            ok=True,
+            title="Email verificado",
+            heading=f"¡Listo, {user.username}!",
+            message="Tu email fue verificado correctamente. Ya puedes cerrar esta pestaña."
+        ), 200
 
     except Exception as e:
-        print("Error verify-email (debug):", repr(e))
-        return jsonify({"msg": "Token inválido o expirado"}), 400
+        print("verify-email error:", repr(e))
+        return render_template(
+            "verify_email.html",
+            ok=False,
+            title="Verificación fallida",
+            heading="No se pudo verificar el email",
+            message="El enlace es inválido o ya expiró."
+        ), 400
 
 # --------------------------
 # USERS EDIT
@@ -769,10 +785,6 @@ def reset_password():
 @api.route("/sessions", methods=["POST"])
 @jwt_required()
 def create_or_get_session():
-    """
-    Body:
-      { "session_type": "day"|"night", "date": "YYYY-MM-DD" (optional) }
-    """
     body = request.get_json(silent=True) or {}
     session_type_raw = (body.get("session_type") or "").strip().lower()
     if session_type_raw not in ("day", "night"):
@@ -813,12 +825,39 @@ def create_or_get_session():
             points_earned=0,
         )
         db.session.add(session)
-        db.session.commit()
 
+    # Siempre que interactúa, actualiza last_activity_at
     user.last_activity_at = datetime.now(timezone.utc)
-    db.session.commit()
 
+    # --- CREA O ASEGURA REMINDER (solo si tiene al menos una DAY session) ---
+    # Si quieres que empiece desde la primera DAY:
+    if st_enum == SessionType.day:
+        existing = Reminder.query.filter_by(
+            user_id=user.id,
+            reminder_type=ReminderType.inactive_nudge,
+        ).first()
+
+        if not existing:
+            r = Reminder(
+                user_id=user.id,
+                reminder_type=ReminderType.inactive_nudge,
+                mode=ReminderMode.inactivity,
+                inactive_after_minutes=1440,  # 24h primer aviso
+                days_of_week="daily",
+                is_active=True,
+                last_sent_at=None,
+            )
+            db.session.add(r)
+
+        else:
+            # por si estaba apagado o sin umbral
+            if not existing.inactive_after_minutes:
+                existing.inactive_after_minutes = 1440
+            existing.is_active = True
+
+    db.session.commit()
     return jsonify(session.serialize()), 200
+
 
 
 # -------------------------
@@ -1938,7 +1977,7 @@ def dev_reset_user_data():
 # -------------------------
 # REMINDERS
 # -------------------------
-
+"""
 
 @api.route("/reminders", methods=["GET"])
 @jwt_required()
@@ -2081,15 +2120,17 @@ def delete_reminder(reminder_id):
     db.session.commit()
 
     return jsonify({"msg": "Reminder desactivado"}), 200
-
+"""
 # -------------------------
 # ENVIAR REMINDERS (INACTIVOS)
 # -------------------------
 
 
+from datetime import datetime, timezone, timedelta
+import os
+
 @api.route("/tasks/send-reminders", methods=["POST"])
 def task_send_reminders():
-    # Seguridad simple: solo tu cron/servicio interno debe llamar esto
     internal_token = request.headers.get("X-Internal-Token")
     if internal_token != os.getenv("INTERNAL_TASK_TOKEN"):
         return jsonify({"msg": "Unauthorized"}), 401
@@ -2097,15 +2138,12 @@ def task_send_reminders():
     def dev_only():
         return os.getenv("FLASK_DEBUG") == "1"
 
-    # Modo demo: /tasks/send-reminders?force=1
     force = (request.args.get("force") == "1")
     if force and not dev_only():
-        # En prod no permitimos force
         return jsonify({"msg": "Not found"}), 404
 
     now_utc = datetime.now(timezone.utc)
 
-    # Trae reminders activos de tipo inactive_nudge
     reminders = Reminder.query.filter_by(
         is_active=True,
         reminder_type=ReminderType.inactive_nudge
@@ -2115,71 +2153,99 @@ def task_send_reminders():
     skipped = 0
     errors = 0
 
+    debug_rows = []  # útil para saber por qué se salta
+    debug_enabled = force or dev_only()
+
     frontend_url = (os.getenv("VITE_FRONTEND_URL") or "").rstrip("/")
     url_app = f"{frontend_url}/" if frontend_url else "/"
 
+    STEP_1 = 1440   # 24h
+    STEP_2 = 2880   # 48h
+    STEP_3 = 4320   # 72h
+
     for r in reminders:
-        user = User.query.get(r.user_id)
-        if not user:
-            skipped += 1
-            continue
+        try:
+            user = User.query.get(r.user_id)
+            if not user:
+                skipped += 1
+                if debug_enabled:
+                    debug_rows.append({"reminder_id": r.id, "reason": "user_not_found"})
+                continue
 
-        # Solo usuarios verificados
-        if not user.is_email_verified:
-            skipped += 1
-            continue
+            if not user.is_email_verified:
+                skipped += 1
+                if debug_enabled:
+                    debug_rows.append({"reminder_id": r.id, "user_id": user.id, "reason": "email_not_verified"})
+                continue
 
-        # Solo modo inactivity
-        if r.mode != ReminderMode.inactivity:
-            skipped += 1
-            continue
+            if r.mode != ReminderMode.inactivity:
+                skipped += 1
+                if debug_enabled:
+                    debug_rows.append({"reminder_id": r.id, "user_id": user.id, "reason": "mode_not_inactivity"})
+                continue
 
-        # Requiere umbral en minutos (ej 1440)
-        if not r.inactive_after_minutes:
-            skipped += 1
-            continue
-
-        last_sent = _as_utc_aware(r.last_sent_at)
-
-        if last_sent and (now_utc - last_sent) < timedelta(hours=24):
-            skipped += 1
-            continue
-
-        # --- Reglas reales (si NO es force) ---
-        if not force:
-            # 1) Regla 24h
-            last = user.last_activity_at or user.last_login_at or user.created_at
-            last = _as_utc_aware(last)
-
-            diff_minutes = int((now_utc - last).total_seconds() // 60)
-
-            if diff_minutes < int(r.inactive_after_minutes):
+            # SOLO después de la primera DAY session (tu regla)
+            has_any_session = DailySession.query.filter_by(user_id=user.id).first()
+            if not has_any_session:
                 skipped += 1
                 continue
 
-            # 2) Ventana de envío: desde local_time (ej 09:00) en hora local del usuario
-            # Si r.local_time es None, se permite enviar a cualquier hora (solo 24h aplica)
-            if r.local_time:
-                try:
-                    user_tz = ZoneInfo(user.timezone or "UTC")
-                except Exception:
-                    user_tz = ZoneInfo("UTC")
+            # Default si viene null
+            if not r.inactive_after_minutes:
+                r.inactive_after_minutes = STEP_1
 
-                now_local = now_utc.astimezone(user_tz)
+            # anti-duplicado por cron (1h)
+            last_sent = _as_utc_aware(r.last_sent_at)
+            if last_sent and (now_utc - last_sent) < timedelta(hours=1):
+                skipped += 1
+                if debug_enabled:
+                    debug_rows.append({"reminder_id": r.id, "user_id": user.id, "reason": "sent_recently"})
+                continue
 
-                # Si aún no son las 09:00 local, no envíes
-                if now_local.time() < r.local_time:
-                    skipped += 1
-                    continue
+            # base de inactividad: desde última actividad
+            last = user.last_activity_at or user.last_login_at or user.created_at
+            last = _as_utc_aware(last)
+            diff_minutes = int((now_utc - last).total_seconds() // 60)
 
-        # --- Enviar correo ---
-        try:
+            # respeta umbral (24/48/72) salvo force
+            if not force and diff_minutes < int(r.inactive_after_minutes):
+                skipped += 1
+                if debug_enabled:
+                    debug_rows.append({
+                        "reminder_id": r.id,
+                        "user_id": user.id,
+                        "reason": "below_threshold",
+                        "diff_minutes": diff_minutes,
+                        "threshold": int(r.inactive_after_minutes)
+                    })
+                continue
+
+            # etapa según umbral guardado
+            threshold = int(r.inactive_after_minutes)
+            if threshold <= STEP_1:
+                stage = 1
+                next_threshold = STEP_2
+            elif threshold <= STEP_2:
+                stage = 2
+                next_threshold = STEP_3
+            else:
+                stage = 3
+                next_threshold = None
+
+            # enviar
             send_inactive_reminder(
                 email=user.email,
                 username=user.username,
-                url_app=url_app
+                url_app=url_app,
+                stage=stage
             )
+
             r.last_sent_at = now_utc
+            if next_threshold is None:
+                r.is_active = False  # STOP definitivo
+            else:
+                r.inactive_after_minutes = next_threshold
+
             db.session.commit()
             sent += 1
 
@@ -2188,14 +2254,20 @@ def task_send_reminders():
             db.session.rollback()
             errors += 1
 
-    return jsonify({
+    payload = {
         "ok": True,
         "processed": len(reminders),
         "sent": sent,
         "skipped": skipped,
         "errors": errors,
         "force": force
-    }), 200
+    }
+
+    if debug_enabled:
+        payload["debug"] = debug_rows[:50]  # no explotar el response
+
+    return jsonify(payload), 200
+
 
 
 # -------------------------

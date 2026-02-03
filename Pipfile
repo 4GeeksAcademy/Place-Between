@@ -21,7 +21,7 @@ sqlalchemy = "*"
 tomli="*"
 flask_migrate="*"
 flask_cors="*"
-requests="*"
+requests = "*"
 
 [requires]
 python_version = "3.13"
